@@ -1,6 +1,5 @@
 import type { Config, Context } from '@netlify/functions';
 import { getDatabase } from '@netlify/database';
-import type { Product } from '../../src/types';
 
 export default async (req: Request, context: Context) => {
   const db = getDatabase();
@@ -12,21 +11,21 @@ export default async (req: Request, context: Context) => {
 
   if (req.method === 'PATCH') {
     const patch = await req.json();
-    const rows = await db.sql`SELECT data FROM products WHERE id = ${id}`;
+    const patchJson = JSON.stringify(patch);
+
+    const rows = await db.sql`
+      UPDATE products
+      SET data = data || ${patchJson}::jsonb,
+          is_sold = COALESCE((${patchJson}::jsonb ->> 'isSold')::boolean, is_sold)
+      WHERE id = ${id}
+      RETURNING data
+    `;
+
     if (rows.length === 0) {
       return new Response('Not found', { status: 404 });
     }
 
-    const updated: Product = { ...(rows[0].data as Product), ...patch };
-
-    await db.sql`
-      UPDATE products
-      SET data = ${JSON.stringify(updated)}::jsonb,
-          is_sold = ${updated.isSold ?? false}
-      WHERE id = ${id}
-    `;
-
-    return new Response(JSON.stringify(updated), {
+    return new Response(JSON.stringify(rows[0].data), {
       headers: { 'content-type': 'application/json' },
     });
   }
