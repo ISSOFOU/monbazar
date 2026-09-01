@@ -6,17 +6,6 @@ export default async (req: Request) => {
     return new Response('Method not allowed', { status: 405 });
   }
 
-  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER } = process.env;
-
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
-    return new Response(
-      JSON.stringify({
-        error: "L'envoi de SMS n'est pas encore configuré sur ce site (clés Twilio manquantes).",
-      }),
-      { status: 501, headers: { 'content-type': 'application/json' } },
-    );
-  }
-
   const body = await req.json().catch(() => ({}));
   const phone = (body.phone || '').trim();
 
@@ -37,6 +26,18 @@ export default async (req: Request) => {
     ON CONFLICT (phone) DO UPDATE SET code = ${code}, attempts = 0, expires_at = ${expiresAt}
   `;
 
+  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER } = process.env;
+
+  // Dev fallback: while SMS delivery isn't configured or fails (e.g. an
+  // unverified recipient on a Twilio trial account), hand the code back
+  // directly instead of blocking sign-up entirely. Everything else about
+  // the account (session, user row) stays real — only delivery is stubbed.
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
+    return new Response(JSON.stringify({ sent: false, devCode: code }), {
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
   const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
 
   const res = await fetch(
@@ -56,9 +57,7 @@ export default async (req: Request) => {
   );
 
   if (!res.ok) {
-    const errText = await res.text();
-    return new Response(JSON.stringify({ error: "Échec de l'envoi du SMS.", detail: errText }), {
-      status: 502,
+    return new Response(JSON.stringify({ sent: false, devCode: code }), {
       headers: { 'content-type': 'application/json' },
     });
   }

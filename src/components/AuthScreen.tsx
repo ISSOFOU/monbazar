@@ -16,10 +16,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setDevCode(null);
     setLoading(true);
     try {
       const res = await fetch('/api/auth/request-otp', {
@@ -31,6 +33,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
       if (!res.ok) {
         setError(data.error || "Impossible d'envoyer le code.");
         return;
+      }
+      if (!data.sent && data.devCode) {
+        setDevCode(data.devCode);
+        setCode(data.devCode);
       }
       setStep('code');
     } catch {
@@ -126,6 +132,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Changer de numéro
             </button>
+
+            {devCode && (
+              <div className="px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                <span className="font-bold">Mode test :</span> l'envoi SMS n'est pas encore activé, voici ton code directement : <span className="font-extrabold tracking-widest">{devCode}</span>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-bold text-slate-800 mb-1.5">
                 Code reçu par SMS au {phone}
