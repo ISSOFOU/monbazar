@@ -1,5 +1,6 @@
 import type { Config, Context } from '@netlify/functions';
 import { getDatabase } from '@netlify/database';
+import { getUserFromRequest } from '../lib/auth';
 
 export default async (req: Request, context: Context) => {
   const db = getDatabase();
@@ -7,6 +8,14 @@ export default async (req: Request, context: Context) => {
 
   if (!id) {
     return new Response('Missing id', { status: 400 });
+  }
+
+  const user = await getUserFromRequest(req, db);
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'Connecte-toi pour effectuer cette action.' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
   }
 
   if (req.method === 'PATCH') {
@@ -31,7 +40,13 @@ export default async (req: Request, context: Context) => {
   }
 
   if (req.method === 'DELETE') {
-    await db.sql`DELETE FROM products WHERE id = ${id}`;
+    const rows = await db.sql`DELETE FROM products WHERE id = ${id} AND seller_id = ${user.id} RETURNING id`;
+    if (rows.length === 0) {
+      return new Response(JSON.stringify({ error: "Tu ne peux supprimer que tes propres annonces." }), {
+        status: 403,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
     return new Response(null, { status: 204 });
   }
 

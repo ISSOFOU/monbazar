@@ -15,11 +15,12 @@ import {
   MapPin,
   Phone,
 } from 'lucide-react';
-import { CURRENT_USER } from '../data/mockData';
 import { Product } from '../types';
 import { ProductCard } from './ProductCard';
+import type { CurrentUser } from '../App';
 
 interface ProfileViewProps {
+  currentUser: CurrentUser;
   userProducts: Product[];
   favoriteProducts: Product[];
   favorites: string[];
@@ -28,9 +29,11 @@ interface ProfileViewProps {
   onOpenSellModal: () => void;
   onDeleteUserProduct: (id: string) => void;
   onToggleSoldStatus: (id: string) => void;
+  onLogout: () => void;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
+  currentUser,
   userProducts,
   favoriteProducts,
   favorites,
@@ -39,9 +42,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onOpenSellModal,
   onDeleteUserProduct,
   onToggleSoldStatus,
+  onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<'listings' | 'favorites' | 'wallet' | 'settings'>('listings');
-  const [walletBalance, setWalletBalance] = useState(CURRENT_USER.walletBalance);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [showTopupModal, setShowTopupModal] = useState(false);
   const [topupAmount, setTopupAmount] = useState('10000');
 
@@ -58,8 +62,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-4">
         <div className="relative">
           <img
-            src={CURRENT_USER.avatar}
-            alt={CURRENT_USER.name}
+            src={currentUser.avatar || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(currentUser.name)}&backgroundColor=0B8457`}
+            alt={currentUser.name}
             referrerPolicy="no-referrer"
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-emerald-500 shadow-md"
           />
@@ -71,23 +75,32 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <div className="flex-1 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
             <h1 className="text-xl font-extrabold text-slate-900 font-display">
-              {CURRENT_USER.name}
+              {currentUser.name}
             </h1>
-            <span className="inline-flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full w-fit mx-auto sm:mx-0">
-              <CheckCircle className="w-3 h-3 text-emerald-600" />
-              Compte Vérifié Mobile Money
-            </span>
+            {currentUser.verifiedMobileMoney ? (
+              <span className="inline-flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full w-fit mx-auto sm:mx-0">
+                <CheckCircle className="w-3 h-3 text-emerald-600" />
+                Compte vérifié Mobile Money
+              </span>
+            ) : (
+              <span className="inline-flex items-center justify-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full w-fit mx-auto sm:mx-0">
+                Mobile Money non lié
+              </span>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-slate-500 mb-3">
             <span className="flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-slate-400" />
-              {CURRENT_USER.location}
+              {currentUser.city || 'Bénin'}
             </span>
             <span>·</span>
-            <span>Membre depuis {CURRENT_USER.memberSince}</span>
+            <span>Membre depuis {currentUser.memberSince}</span>
             <span>·</span>
-            <span className="font-semibold text-slate-700">★ 5.0 (24 avis)</span>
+            <span className="flex items-center gap-1">
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
+              {currentUser.phone}
+            </span>
           </div>
 
           {/* User Stats Badges */}
@@ -100,13 +113,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
             <div className="p-2 bg-slate-50 rounded-xl">
               <div className="text-base font-extrabold text-slate-900 font-display">
-                {CURRENT_USER.salesCount}
+                {currentUser.salesCount}
               </div>
               <div className="text-[10px] text-slate-500 font-medium">Ventes</div>
             </div>
             <div className="p-2 bg-slate-50 rounded-xl">
               <div className="text-base font-extrabold text-slate-900 font-display">
-                {CURRENT_USER.purchasesCount}
+                {currentUser.purchasesCount}
               </div>
               <div className="text-[10px] text-slate-500 font-medium">Achats</div>
             </div>
@@ -372,10 +385,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="space-y-3 divide-y divide-slate-100">
             <div className="pt-2 flex items-center justify-between">
               <div>
-                <div className="font-semibold text-slate-800">Numéro Mobile Money lié</div>
-                <div className="text-xs text-slate-500">+229 97 12 34 56 (MTN Bénin)</div>
+                <div className="font-semibold text-slate-800">Numéro de connexion</div>
+                <div className="text-xs text-slate-500">{currentUser.phone}</div>
               </div>
-              <button className="text-xs text-emerald-700 font-bold">Modifier</button>
             </div>
             <div className="pt-2 flex items-center justify-between">
               <div>
@@ -392,6 +404,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <span className="text-emerald-600 font-bold">Actif</span>
             </div>
           </div>
+
+          <button
+            onClick={onLogout}
+            className="w-full mt-2 py-2.5 rounded-xl border border-red-200 text-red-600 font-bold text-xs hover:bg-red-50 transition-colors"
+          >
+            Se déconnecter
+          </button>
         </div>
       )}
     </div>

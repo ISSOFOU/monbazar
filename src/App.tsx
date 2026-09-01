@@ -1,21 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import {
-  Heart,
-  Sparkles,
-  MapPin,
-  TrendingUp,
-  ShieldCheck,
-  CheckCircle,
-  SlidersHorizontal,
-  Plus,
-} from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { Product, TabType, Conversation, Message } from './types';
-import {
-  INITIAL_PRODUCTS,
-  INITIAL_CONVERSATIONS,
-  CURRENT_USER,
-} from './data/mockData';
+import { INITIAL_CONVERSATIONS } from './data/mockData';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { ProductCard } from './components/ProductCard';
@@ -28,13 +15,64 @@ import { SplashScreen } from './components/SplashScreen';
 import { SearchView } from './components/SearchView';
 import { MessagesView } from './components/MessagesView';
 import { ProfileView } from './components/ProfileView';
+import { AuthScreen } from './components/AuthScreen';
+
+export interface CurrentUser {
+  id: string;
+  phone: string;
+  name: string;
+  avatar: string | null;
+  city: string | null;
+  verifiedMobileMoney: boolean;
+  memberSince: string;
+  salesCount: number;
+  purchasesCount: number;
+}
+
+const TOKEN_KEY = 'mon_bazar_token';
 
 export default function App() {
+  // Auth state — real accounts via SMS OTP (see netlify/functions/auth-*.mts)
+  const [authToken, setAuthToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authToken) {
+      setAuthLoading(false);
+      return;
+    }
+    fetch('/api/me', { headers: { authorization: `Bearer ${authToken}` } })
+      .then((res) => {
+        if (!res.ok) throw new Error('unauthorized');
+        return res.json();
+      })
+      .then((user: CurrentUser) => setCurrentUser(user))
+      .catch(() => {
+        localStorage.removeItem(TOKEN_KEY);
+        setAuthToken(null);
+        setCurrentUser(null);
+      })
+      .finally(() => setAuthLoading(false));
+  }, [authToken]);
+
+  const handleAuthenticated = (token: string, user: CurrentUser) => {
+    localStorage.setItem(TOKEN_KEY, token);
+    setAuthToken(token);
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    setAuthToken(null);
+    setCurrentUser(null);
+  };
+
   // State Initialization
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [currentTab, setCurrentTab] = useState<TabType>('accueil');
 
-  // Products & User data — loaded from the shared database (see netlify/functions/products.mts)
+  // Products — loaded from the shared database (see netlify/functions/products.mts)
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
 
@@ -42,13 +80,13 @@ export default function App() {
     fetch('/api/products')
       .then((res) => res.json())
       .then((data: Product[]) => setProducts(data))
-      .catch(() => setProducts(INITIAL_PRODUCTS))
+      .catch(() => setProducts([]))
       .finally(() => setProductsLoading(false));
   }, []);
 
   const [favorites, setFavorites] = useState<string[]>(() => {
     const saved = localStorage.getItem('mon_bazar_favorites');
-    return saved ? JSON.parse(saved) : ['prod-1', 'prod-3'];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [conversations, setConversations] = useState<Conversation[]>(() => {
@@ -58,8 +96,8 @@ export default function App() {
 
   // Filter & Search
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Mode & Friperie');
-  const [currentLocation, setCurrentLocation] = useState('Cotonou, Fidjrossè');
+  const [selectedCategory, setSelectedCategory] = useState('Tous');
+  const [currentLocation, setCurrentLocation] = useState('Tout le Bénin');
 
   // Modals state
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -110,8 +148,10 @@ export default function App() {
     setIsDetailModalOpen(true);
   };
 
-  // Publish new product from SellModal
+  // Publish new product from SellModal — seller identity comes from the server session
   const handlePublishProduct = (newProdData: Partial<Product>) => {
+    if (!authToken) return;
+
     const payload = {
       title: newProdData.title,
       price: newProdData.price,
@@ -122,27 +162,17 @@ export default function App() {
       city: newProdData.city,
       description: newProdData.description,
       isNegotiable: newProdData.isNegotiable ?? true,
-      seller: {
-        id: CURRENT_USER.id,
-        name: CURRENT_USER.name,
-        avatar: CURRENT_USER.avatar,
-        initials: CURRENT_USER.initials,
-        isVerified: true,
-        memberSince: CURRENT_USER.memberSince,
-        salesCount: CURRENT_USER.salesCount,
-        rating: 5.0,
-        phone: CURRENT_USER.phone,
-        responseRate: '5 min',
-        verifiedMobileMoney: true,
-      },
     };
 
     fetch('/api/products', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
       body: JSON.stringify(payload),
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error('publish failed');
+        return res.json();
+      })
       .then((created: Product) => {
         setProducts((prev) => [created, ...prev]);
         showToast('🎉 Votre annonce a été publiée avec succès !');
@@ -154,13 +184,12 @@ export default function App() {
   const handleSubmitOffer = (amount: number, messageText: string) => {
     if (!selectedProduct) return;
 
-    // Check if conversation already exists or create one
     const convId = `conv-${selectedProduct.id}-${Date.now()}`;
     const newMsg: Message = {
       id: `msg-${Date.now()}`,
       senderId: 'buyer',
       text: `${messageText} (Offre proposée : ${new Intl.NumberFormat('fr-FR').format(amount)} FCFA)`,
-      timestamp: 'À l\'instant',
+      timestamp: "À l'instant",
       isOffer: true,
       offerAmount: amount,
       offerStatus: 'pending',
@@ -174,7 +203,7 @@ export default function App() {
       const updated = [...conversations];
       updated[existingConvIndex].messages.push(newMsg);
       updated[existingConvIndex].lastMessage = `Offre de ${new Intl.NumberFormat('fr-FR').format(amount)} FCFA`;
-      updated[existingConvIndex].lastMessageTime = 'À l\'instant';
+      updated[existingConvIndex].lastMessageTime = "À l'instant";
       setConversations(updated);
     } else {
       const newConv: Conversation = {
@@ -185,7 +214,7 @@ export default function App() {
         productImage: selectedProduct.images[0],
         seller: selectedProduct.seller,
         lastMessage: `Offre envoyée : ${new Intl.NumberFormat('fr-FR').format(amount)} FCFA`,
-        lastMessageTime: 'À l\'instant',
+        lastMessageTime: "À l'instant",
         unread: false,
         messages: [newMsg],
       };
@@ -203,9 +232,11 @@ export default function App() {
     setIsDetailModalOpen(false);
     showToast(`🛍️ Achat de "${prod.title}" confirmé avec succès !`);
 
+    if (!authToken) return;
+
     fetch(`/api/products/${prod.id}`, {
       method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
       body: JSON.stringify({ isSold: true }),
     })
       .then((res) => res.json())
@@ -228,14 +259,14 @@ export default function App() {
         productImage: prod.images[0],
         seller: prod.seller,
         lastMessage: `Bonjour, votre article "${prod.title}" est-il toujours disponible ?`,
-        lastMessageTime: 'À l\'instant',
+        lastMessageTime: "À l'instant",
         unread: false,
         messages: [
           {
             id: `msg-${Date.now()}`,
             senderId: 'buyer',
             text: `Bonjour, votre article "${prod.title}" est-il toujours disponible ?`,
-            timestamp: 'À l\'instant',
+            timestamp: "À l'instant",
           },
         ],
       };
@@ -253,12 +284,12 @@ export default function App() {
             id: `msg-${Date.now()}`,
             senderId: 'buyer',
             text,
-            timestamp: 'À l\'instant',
+            timestamp: "À l'instant",
           };
           return {
             ...c,
             lastMessage: text,
-            lastMessageTime: 'À l\'instant',
+            lastMessageTime: "À l'instant",
             messages: [...c.messages, newMsg],
           };
         }
@@ -269,13 +300,18 @@ export default function App() {
 
   // Delete user listing
   const handleDeleteUserProduct = (id: string) => {
+    if (!authToken) return;
     setProducts((prev) => prev.filter((p) => p.id !== id));
     showToast('Annonce supprimée');
-    fetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => {});
+    fetch(`/api/products/${id}`, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${authToken}` },
+    }).catch(() => {});
   };
 
   // Toggle sold status
   const handleToggleSoldStatus = (id: string) => {
+    if (!authToken) return;
     const target = products.find((p) => p.id === id);
     if (!target) return;
     const nextIsSold = !target.isSold;
@@ -283,7 +319,7 @@ export default function App() {
     showToast('Statut mis à jour');
     fetch(`/api/products/${id}`, {
       method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
       body: JSON.stringify({ isSold: nextIsSold }),
     }).catch(() => {});
   };
@@ -308,9 +344,21 @@ export default function App() {
     return matchQuery && matchCat && matchLoc;
   });
 
-  const userListings = products.filter((p) => p.seller.id === CURRENT_USER.id);
+  const userListings = currentUser ? products.filter((p) => p.seller.id === currentUser.id) : [];
   const favoriteProductsList = products.filter((p) => favorites.includes(p.id));
   const unreadCount = conversations.filter((c) => c.unread).length;
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-100">
+        <div className="w-10 h-10 rounded-full border-4 border-emerald-600 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!authToken || !currentUser) {
+    return <AuthScreen onAuthenticated={handleAuthenticated} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col items-center justify-start antialiased">
@@ -334,13 +382,13 @@ export default function App() {
             onOpenFavorites={() => setCurrentTab('profil')}
             onOpenProfile={() => setCurrentTab('profil')}
             onOpenSplash={() => setShowSplash(true)}
-            userAvatar={CURRENT_USER.avatar}
+            userAvatar={currentUser.avatar || undefined}
           />
         )}
 
         {/* Dynamic Views Rendering */}
         <main className="w-full">
-          {/* TAB 1: ACCUEIL (Matching Image 4, 8, 9) */}
+          {/* TAB 1: ACCUEIL */}
           {currentTab === 'accueil' && (
             <div className="p-3.5 sm:p-5 pb-24 space-y-4">
               {/* Promotional Hero Banner for Mobile Money & Local Marketplace */}
@@ -351,7 +399,7 @@ export default function App() {
                     Paiement Sécurisé MoMo
                   </div>
                   <h2 className="text-sm sm:text-base font-extrabold font-display leading-snug">
-                    Achetez & vendez en toute confiance à {currentLocation.split(',')[0]}
+                    Achetez & vendez en toute confiance {currentLocation !== 'Tout le Bénin' ? `à ${currentLocation.split(',')[0]}` : 'au Bénin'}
                   </h2>
                   <p className="text-[11px] text-emerald-100/90 leading-tight">
                     Fonds bloqués jusqu'à la remise en main propre.
@@ -362,7 +410,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Products Grid: 2 Columns exactly as shown in screenshot */}
+              {/* Products Grid */}
               <div>
                 <div className="flex items-center justify-between mb-3 px-1">
                   <div className="flex items-center gap-1.5">
@@ -446,6 +494,7 @@ export default function App() {
           {/* TAB 4: PROFIL */}
           {currentTab === 'profil' && (
             <ProfileView
+              currentUser={currentUser}
               userProducts={userListings}
               favoriteProducts={favoriteProductsList}
               favorites={favorites}
@@ -454,6 +503,7 @@ export default function App() {
               onOpenSellModal={() => setIsSellModalOpen(true)}
               onDeleteUserProduct={handleDeleteUserProduct}
               onToggleSoldStatus={handleToggleSoldStatus}
+              onLogout={handleLogout}
             />
           )}
         </main>
@@ -478,7 +528,7 @@ export default function App() {
         }}
       />
 
-      {/* Product Detail Modal (Matching Image 2, 6, 10) */}
+      {/* Product Detail Modal */}
       <ProductDetailModal
         product={selectedProduct}
         isOpen={isDetailModalOpen}
@@ -516,11 +566,12 @@ export default function App() {
         />
       )}
 
-      {/* Sell Modal (Matching Image 3) */}
+      {/* Sell Modal */}
       <SellModal
         isOpen={isSellModalOpen}
         onClose={() => setIsSellModalOpen(false)}
         onPublishProduct={handlePublishProduct}
+        authToken={authToken}
       />
 
       {/* Toast Notification Banner */}

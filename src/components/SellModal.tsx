@@ -8,6 +8,7 @@ interface SellModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPublishProduct: (product: Partial<Product>) => void;
+  authToken: string;
 }
 
 const CATEGORIES: Category[] = [
@@ -28,22 +29,38 @@ const CONDITIONS: Condition[] = [
   'État correct',
 ];
 
-const SAMPLE_PHOTO_PRESETS = [
-  { name: 'Robe Wax', url: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800&auto=format&fit=crop&q=80' },
-  { name: 'Smartphone', url: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=800&auto=format&fit=crop&q=80' },
-  { name: 'Sneakers', url: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=800&auto=format&fit=crop&q=80' },
-  { name: 'Panier artisanal', url: 'https://images.unsplash.com/photo-1590736704728-f4730bb30770?w=800&auto=format&fit=crop&q=80' },
-];
+// Resizes and compresses a photo client-side before it's uploaded, so a real
+// phone camera photo (often 3-8 MB) doesn't blow past the upload size limit.
+function compressImage(file: File, maxDimension = 1280, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read failed'));
+    reader.onload = () => {
+      img.onerror = () => reject(new Error('decode failed'));
+      img.onload = () => {
+        const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('canvas unsupported'));
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export const SellModal: React.FC<SellModalProps> = ({
   isOpen,
   onClose,
   onPublishProduct,
+  authToken,
 }) => {
-  const [images, setImages] = useState<string[]>([
-    'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800&auto=format&fit=crop&q=80',
-  ]);
+  const [images, setImages] = useState<string[]>([]);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [title, setTitle] = useState('');
@@ -53,22 +70,37 @@ export const SellModal: React.FC<SellModalProps> = ({
   const [isNegotiable, setIsNegotiable] = useState(true);
   const [location, setLocation] = useState('Cotonou, Fidjrossè');
   const [description, setDescription] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
+    e.target.value = '';
 
-    Array.from(files).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setImages((prev) => [...prev, reader.result as string].slice(0, 5));
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    setUploadError(null);
+    setUploading(true);
+
+    try {
+      const selectedFiles = (Array.from(files) as File[]).slice(0, 5 - images.length);
+      for (const file of selectedFiles) {
+        const dataUrl = await compressImage(file);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ dataUrl }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'upload failed');
+        setImages((prev) => [...prev, data.url].slice(0, 5));
+      }
+    } catch (err: any) {
+      setUploadError(err.message === 'upload failed' ? "Échec de l'envoi de la photo." : err.message || 'Erreur lors de l\'envoi.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleAddImageUrl = () => {
@@ -185,10 +217,17 @@ export const SellModal: React.FC<SellModalProps> = ({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-700 transition-all cursor-pointer"
+                        disabled={uploading}
+                        className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-700 transition-all cursor-pointer disabled:opacity-60"
                       >
-                        <Plus className="w-6 h-6 stroke-[2.5]" />
-                        <span className="text-[10px] font-semibold mt-1">Ajouter</span>
+                        {uploading ? (
+                          <div className="w-5 h-5 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
+                        ) : (
+                          <>
+                            <Plus className="w-6 h-6 stroke-[2.5]" />
+                            <span className="text-[10px] font-semibold mt-1">Ajouter</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   )}
@@ -199,34 +238,24 @@ export const SellModal: React.FC<SellModalProps> = ({
                   ref={fileInputRef}
                   onChange={handleFileUpload}
                   multiple
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   className="hidden"
                 />
 
-                {/* Quick Add photo by link / preset */}
-                <div className="mt-2 flex items-center justify-between">
+                {uploadError && (
+                  <p className="mt-1.5 text-xs font-semibold text-red-600">{uploadError}</p>
+                )}
+
+                {/* Quick Add photo by link */}
+                <div className="mt-2">
                   <button
                     type="button"
                     onClick={() => setShowUrlInput(!showUrlInput)}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
                   >
                     <LinkIcon className="w-3.5 h-3.5" />
-                    <span>Lien URL d'image</span>
+                    <span>Ajouter via un lien d'image</span>
                   </button>
-
-                  <div className="flex items-center gap-1 text-[11px] text-slate-400">
-                    <span>Exemples :</span>
-                    {SAMPLE_PHOTO_PRESETS.slice(0, 2).map((preset) => (
-                      <button
-                        key={preset.name}
-                        type="button"
-                        onClick={() => setImages((prev) => [...prev, preset.url].slice(0, 5))}
-                        className="text-xs text-slate-600 hover:text-emerald-700 underline mr-1"
-                      >
-                        {preset.name}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 {showUrlInput && (
@@ -393,9 +422,10 @@ export const SellModal: React.FC<SellModalProps> = ({
                 <button
                   id="btn-publish-listing"
                   type="submit"
-                  className="w-full py-4 bg-[#f95738] hover:bg-[#e04526] text-white font-extrabold rounded-2xl shadow-lg shadow-orange-500/25 active:scale-98 transition-all text-base font-display"
+                  disabled={uploading || images.length === 0}
+                  className="w-full py-4 bg-[#f95738] hover:bg-[#e04526] text-white font-extrabold rounded-2xl shadow-lg shadow-orange-500/25 active:scale-98 transition-all text-base font-display disabled:opacity-50"
                 >
-                  Publier l'annonce
+                  {uploading ? 'Envoi des photos...' : "Publier l'annonce"}
                 </button>
               </div>
             </form>
