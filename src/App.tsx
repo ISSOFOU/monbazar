@@ -34,18 +34,17 @@ export default function App() {
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [currentTab, setCurrentTab] = useState<TabType>('accueil');
 
-  // Products & User data
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('mon_bazar_products');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return INITIAL_PRODUCTS;
-      }
-    }
-    return INITIAL_PRODUCTS;
-  });
+  // Products & User data — loaded from the shared database (see netlify/functions/products.mts)
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then((res) => res.json())
+      .then((data: Product[]) => setProducts(data))
+      .catch(() => setProducts(INITIAL_PRODUCTS))
+      .finally(() => setProductsLoading(false));
+  }, []);
 
   const [favorites, setFavorites] = useState<string[]>(() => {
     const saved = localStorage.getItem('mon_bazar_favorites');
@@ -81,11 +80,7 @@ export default function App() {
     }, 3500);
   };
 
-  // Sync with LocalStorage
-  useEffect(() => {
-    localStorage.setItem('mon_bazar_products', JSON.stringify(products));
-  }, [products]);
-
+  // Sync with LocalStorage (favorites and conversations stay per-device for now)
   useEffect(() => {
     localStorage.setItem('mon_bazar_favorites', JSON.stringify(favorites));
   }, [favorites]);
@@ -117,16 +112,16 @@ export default function App() {
 
   // Publish new product from SellModal
   const handlePublishProduct = (newProdData: Partial<Product>) => {
-    const newProduct: Product = {
-      id: `prod-${Date.now()}`,
-      title: newProdData.title || 'Nouvel article',
-      price: newProdData.price || 5000,
-      images: newProdData.images || ['https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800&auto=format&fit=crop&q=80'],
-      category: newProdData.category || 'Mode & Friperie',
-      condition: newProdData.condition || 'Très bon état',
+    const payload = {
+      title: newProdData.title,
+      price: newProdData.price,
+      images: newProdData.images,
+      category: newProdData.category,
+      condition: newProdData.condition,
       location: newProdData.location || currentLocation,
-      city: newProdData.city || 'Cotonou',
-      description: newProdData.description || 'Description de l\'article',
+      city: newProdData.city,
+      description: newProdData.description,
+      isNegotiable: newProdData.isNegotiable ?? true,
       seller: {
         id: CURRENT_USER.id,
         name: CURRENT_USER.name,
@@ -140,14 +135,19 @@ export default function App() {
         responseRate: '5 min',
         verifiedMobileMoney: true,
       },
-      createdAt: 'À l\'instant',
-      viewsCount: 1,
-      likesCount: 0,
-      isNegotiable: newProdData.isNegotiable ?? true,
     };
 
-    setProducts((prev) => [newProduct, ...prev]);
-    showToast('🎉 Votre annonce a été publiée avec succès !');
+    fetch('/api/products', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then((res) => res.json())
+      .then((created: Product) => {
+        setProducts((prev) => [created, ...prev]);
+        showToast('🎉 Votre annonce a été publiée avec succès !');
+      })
+      .catch(() => showToast("Erreur : impossible de publier l'annonce"));
   };
 
   // Submit price offer
@@ -202,6 +202,17 @@ export default function App() {
     setIsCheckoutModalOpen(false);
     setIsDetailModalOpen(false);
     showToast(`🛍️ Achat de "${prod.title}" confirmé avec succès !`);
+
+    fetch(`/api/products/${prod.id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ isSold: true }),
+    })
+      .then((res) => res.json())
+      .then((updated: Product) => {
+        setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      })
+      .catch(() => {});
   };
 
   // Start chat directly from product detail
@@ -260,14 +271,21 @@ export default function App() {
   const handleDeleteUserProduct = (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
     showToast('Annonce supprimée');
+    fetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => {});
   };
 
   // Toggle sold status
   const handleToggleSoldStatus = (id: string) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, isSold: !p.isSold } : p))
-    );
+    const target = products.find((p) => p.id === id);
+    if (!target) return;
+    const nextIsSold = !target.isSold;
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, isSold: nextIsSold } : p)));
     showToast('Statut mis à jour');
+    fetch(`/api/products/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ isSold: nextIsSold }),
+    }).catch(() => {});
   };
 
   // Filtered products for Accueil
@@ -365,7 +383,13 @@ export default function App() {
                   )}
                 </div>
 
-                {homeProducts.length > 0 ? (
+                {productsLoading ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="rounded-2xl bg-slate-100 animate-pulse aspect-[3/4]" />
+                    ))}
+                  </div>
+                ) : homeProducts.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                     {homeProducts.map((product) => (
                       <ProductCard
