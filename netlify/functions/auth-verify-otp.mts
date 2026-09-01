@@ -7,17 +7,6 @@ export default async (req: Request) => {
     return new Response('Method not allowed', { status: 405 });
   }
 
-  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID } = process.env;
-
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_VERIFY_SERVICE_SID) {
-    return new Response(
-      JSON.stringify({
-        error: "L'envoi de SMS n'est pas encore configuré sur ce site (clés Twilio manquantes).",
-      }),
-      { status: 501, headers: { 'content-type': 'application/json' } },
-    );
-  }
-
   const body = await req.json().catch(() => ({}));
   const phone = (body.phone || '').trim();
   const code = (body.code || '').trim();
@@ -30,30 +19,42 @@ export default async (req: Request) => {
     });
   }
 
-  const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
+  const db = getDatabase();
 
-  const checkRes = await fetch(
-    `https://verify.twilio.com/v2/Services/${TWILIO_VERIFY_SERVICE_SID}/VerificationCheck`,
-    {
-      method: 'POST',
-      headers: {
-        authorization: `Basic ${auth}`,
-        'content-type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({ To: phone, Code: code }),
-    },
-  );
+  const otpRows = await db.sql`SELECT * FROM otp_codes WHERE phone = ${phone}`;
+  if (otpRows.length === 0) {
+    return new Response(JSON.stringify({ error: "Aucun code demandé pour ce numéro." }), {
+      status: 400,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
 
-  const checkData = await checkRes.json().catch(() => ({}));
+  const otp = otpRows[0];
 
-  if (!checkRes.ok || checkData.status !== 'approved') {
-    return new Response(JSON.stringify({ error: 'Code invalide ou expiré.' }), {
+  if (new Date(otp.expires_at).getTime() < Date.now()) {
+    return new Response(JSON.stringify({ error: 'Code expiré, redemande-en un.' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
     });
   }
 
-  const db = getDatabase();
+  if (otp.attempts >= 5) {
+    return new Response(JSON.stringify({ error: 'Trop de tentatives, redemande un code.' }), {
+      status: 429,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  if (otp.code !== code) {
+    await db.sql`UPDATE otp_codes SET attempts = attempts + 1 WHERE phone = ${phone}`;
+    return new Response(JSON.stringify({ error: 'Code invalide.' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  await db.sql`DELETE FROM otp_codes WHERE phone = ${phone}`;
+
   const existing = await db.sql`SELECT * FROM users WHERE phone = ${phone}`;
 
   let userRow;
