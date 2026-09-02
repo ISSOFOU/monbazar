@@ -101,7 +101,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         {/* Collapsible Filter Panel */}
         {showFilters && (
           <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {/* Category */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Catégorie</label>
@@ -131,6 +131,22 @@ export const SearchView: React.FC<SearchViewProps> = ({
                       {loc}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              {/* Condition */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">État</label>
+                <select
+                  value={selectedCondition}
+                  onChange={(e) => setSelectedCondition(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
+                >
+                  <option value="Tous">Tous</option>
+                  <option value="Neuf avec étiquette">Neuf avec étiquette</option>
+                  <option value="Très bon état">Très bon état</option>
+                  <option value="Bon état">Bon état</option>
+                  <option value="État correct">État correct</option>
                 </select>
               </div>
 
@@ -173,7 +189,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
           <span className="font-semibold">
             {filteredProducts.length} article{filteredProducts.length > 1 ? 's' : ''} trouvé{filteredProducts.length > 1 ? 's' : ''}
           </span>
-          {(selectedCategory !== 'Tous' || selectedLocation !== 'Tout le Bénin' || query) && (
+          {(selectedCategory !== 'Tous' || selectedLocation !== 'Tout le Bénin' || selectedCondition !== 'Tous' || query) && (
             <button
               onClick={() => {
                 setSelectedCategory('Tous');
