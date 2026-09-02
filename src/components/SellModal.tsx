@@ -11,6 +11,8 @@ interface SellModalProps {
   authToken: string;
 }
 
+const MAX_PHOTOS = 10;
+
 const CATEGORIES: Category[] = [
   'Mode & Friperie',
   'High-Tech',
@@ -84,7 +86,7 @@ export const SellModal: React.FC<SellModalProps> = ({
     setUploading(true);
 
     try {
-      const selectedFiles = (Array.from(files) as File[]).slice(0, 5 - images.length);
+      const selectedFiles = (Array.from(files) as File[]).slice(0, MAX_PHOTOS - images.length);
       for (const file of selectedFiles) {
         const dataUrl = await compressImage(file);
         const res = await fetch('/api/upload', {
@@ -94,7 +96,7 @@ export const SellModal: React.FC<SellModalProps> = ({
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'upload failed');
-        setImages((prev) => [...prev, data.url].slice(0, 5));
+        setImages((prev) => [...prev, data.url].slice(0, MAX_PHOTOS));
       }
     } catch (err: any) {
       setUploadError(err.message === 'upload failed' ? "Échec de l'envoi de la photo." : err.message || 'Erreur lors de l\'envoi.');
@@ -105,7 +107,7 @@ export const SellModal: React.FC<SellModalProps> = ({
 
   const handleAddImageUrl = () => {
     if (imageUrlInput.trim()) {
-      setImages((prev) => [...prev, imageUrlInput.trim()].slice(0, 5));
+      setImages((prev) => [...prev, imageUrlInput.trim()].slice(0, MAX_PHOTOS));
       setImageUrlInput('');
       setShowUrlInput(false);
     }
@@ -180,7 +182,7 @@ export const SellModal: React.FC<SellModalProps> = ({
               {/* 1. Photos Section matching Image 3 */}
               <div>
                 <label className="block text-sm font-bold text-slate-800 mb-1">
-                  Photos <span className="text-xs font-normal text-slate-500">(3 à 5, la 1ère fera la couverture)</span>
+                  Photos <span className="text-xs font-normal text-slate-500">(5 à 10, la 1ère fera la couverture)</span>
                 </label>
 
                 {/* Photo Slots Row */}
@@ -212,7 +214,7 @@ export const SellModal: React.FC<SellModalProps> = ({
                   ))}
 
                   {/* Add Image Button slot */}
-                  {images.length < 5 && (
+                  {images.length < MAX_PHOTOS && (
                     <div className="flex flex-col gap-1.5 flex-shrink-0">
                       <button
                         type="button"
