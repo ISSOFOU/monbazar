@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ShieldCheck, CheckCircle2, Phone, ArrowRight, Lock, Sparkles } from 'lucide-react';
+import { X, ShieldCheck, CheckCircle2, Phone, ArrowRight, Lock, Sparkles, Bike, Handshake } from 'lucide-react';
 import { Product } from '../types';
 
 interface BuyCheckoutModalProps {
@@ -17,12 +17,13 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
   onSuccessPurchase,
 }) => {
   const [paymentMethod, setPaymentMethod] = useState<'momo' | 'moov' | 'wave' | 'celtiis' | 'cash'>('momo');
+  const [deliveryMethod, setDeliveryMethod] = useState<'zem' | 'pickup'>('zem');
   const [phoneNumber, setPhoneNumber] = useState('97 00 11 22');
   const [deliveryAddress, setDeliveryAddress] = useState('Cotonou, Fidjrossè');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const deliveryFee = 1000;
+  const deliveryFee = deliveryMethod === 'zem' ? 1000 : 0;
   const buyerProtectionFee = 500;
   const totalAmount = product.price + deliveryFee + buyerProtectionFee;
 
@@ -203,6 +204,50 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
                     </div>
                   </div>
 
+                  {/* Delivery Method */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Mode de remise
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryMethod('zem')}
+                        className={`p-3 rounded-xl border flex items-center gap-2.5 text-left transition-all ${
+                          deliveryMethod === 'zem'
+                            ? 'border-emerald-600 bg-emerald-50/70 shadow-xs'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                          <Bike className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">Livraison Zémidjan</div>
+                          <div className="text-[10px] text-slate-500">~1 000 FCFA</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryMethod('pickup')}
+                        className={`p-3 rounded-xl border flex items-center gap-2.5 text-left transition-all ${
+                          deliveryMethod === 'pickup'
+                            ? 'border-emerald-600 bg-emerald-50/70 shadow-xs'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                          <Handshake className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">Main propre</div>
+                          <div className="text-[10px] text-slate-500">Gratuit</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Phone input for prompt */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -226,7 +271,7 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
                   {/* Delivery Location */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      Lieu de livraison / Rendez-vous
+                      {deliveryMethod === 'zem' ? 'Adresse de livraison (zémidjan)' : 'Lieu de rendez-vous'}
                     </label>
                     <input
                       type="text"
@@ -236,6 +281,11 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       placeholder="Ex: Cotonou, Carrefour Fidjrossè"
                     />
+                    {deliveryMethod === 'zem' && (
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Un zémidjan partenaire récupère l'article chez le vendeur et te le livre à cette adresse.
+                      </p>
+                    )}
                   </div>
 
                   {/* Pricing Breakdown */}
@@ -245,8 +295,8 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
                       <span>{new Intl.NumberFormat('fr-FR').format(product.price)} FCFA</span>
                     </div>
                     <div className="flex justify-between text-slate-600">
-                      <span>Frais de livraison locale</span>
-                      <span>{new Intl.NumberFormat('fr-FR').format(deliveryFee)} FCFA</span>
+                      <span>{deliveryMethod === 'zem' ? 'Course zémidjan' : 'Remise en main propre'}</span>
+                      <span>{deliveryFee > 0 ? `${new Intl.NumberFormat('fr-FR').format(deliveryFee)} FCFA` : 'Gratuit'}</span>
                     </div>
                     <div className="flex justify-between text-slate-600">
                       <span>Protection acheteur Mon Bazar</span>
