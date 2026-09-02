@@ -384,7 +384,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <button
                 id="btn-action-buy-now"
                 onClick={() => onOpenBuyCheckout(product)}
-                className="flex-1 py-3.5 px-4 bg-[#f95738] hover:bg-[#e04526] text-white rounded-2xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 active:scale-98 transition-all cursor-pointer"
+                className="flex-1 py-3.5 px-4 bg-[#FF6B47] hover:bg-[#E85A38] text-white rounded-2xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 active:scale-98 transition-all cursor-pointer"
               >
                 <span>Acheter</span>
               </button>

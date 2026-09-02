@@ -52,11 +52,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             id="btn-tab-sell-fab"
             onClick={onOpenSellModal}
             aria-label="Vendre un article"
-            className="w-13 h-13 rounded-full bg-[#f95738] hover:bg-[#e04526] text-white flex items-center justify-center shadow-lg shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all border-4 border-white"
+            className="w-13 h-13 rounded-full bg-[#FF6B47] hover:bg-[#E85A38] text-white flex items-center justify-center shadow-lg shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all border-4 border-white"
           >
             <Plus className="w-7 h-7 stroke-[2.8]" />
           </button>
-          <span className="text-[11px] font-bold text-[#f95738] mt-1">Vendre</span>
+          <span className="text-[11px] font-bold text-[#FF6B47] mt-1">Vendre</span>
         </div>
 
         {/* 4. Messages */}

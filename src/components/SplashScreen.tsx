@@ -37,7 +37,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDismiss }) => {
           className="relative mb-8"
         >
           {/* Main Logo Container */}
-          <div className="w-36 h-36 sm:w-40 sm:h-40 bg-[#167d4f] rounded-3xl flex items-center justify-center shadow-2xl shadow-emerald-800/30">
+          <div className="w-36 h-36 sm:w-40 sm:h-40 bg-[#0B8457] rounded-3xl flex items-center justify-center shadow-2xl shadow-emerald-800/30">
             <svg
               viewBox="0 0 24 24"
               className="w-20 h-20 text-white"
@@ -56,7 +56,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDismiss }) => {
               {/* Bag handle cutout */}
               <path
                 d="M9 11a3 3 0 0 0 6 0"
-                stroke="#167d4f"
+                stroke="#0B8457"
                 strokeWidth="2.6"
                 strokeLinecap="round"
               />
@@ -80,7 +80,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDismiss }) => {
           transition={{ delay: 0.15 }}
           className="text-4xl sm:text-5xl font-extrabold tracking-tight font-display text-slate-900 mb-2.5"
         >
-          Mon <span className="text-[#167d4f]">Bazar</span>
+          Mon <span className="text-[#0B8457]">Bazar</span>
         </motion.h1>
 
         <motion.p
@@ -105,13 +105,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDismiss }) => {
           onClick={onDismiss}
           className="w-full py-4 px-6 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-200/80 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all active:scale-98 group"
         >
-          <div className="w-8 h-8 rounded-lg bg-[#167d4f] flex items-center justify-center text-white">
+          <div className="w-8 h-8 rounded-lg bg-[#0B8457] flex items-center justify-center text-white">
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
               <path d="M6 9l1.5 11a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2L22 9H2z" />
             </svg>
           </div>
           <span className="text-slate-800 text-lg">
-            Mon <span className="text-[#167d4f]">Bazar</span>
+            Mon <span className="text-[#0B8457]">Bazar</span>
           </span>
           <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-all ml-auto" />
         </button>

@@ -118,7 +118,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-[#f95738] text-white font-bold text-sm shadow-sm disabled:opacity-60"
+              className="w-full py-3.5 rounded-xl bg-[#FF6B47] text-white font-bold text-sm shadow-sm disabled:opacity-60"
             >
               {loading ? 'Envoi du code...' : 'Recevoir un code par SMS'}
             </button>

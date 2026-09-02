@@ -392,7 +392,7 @@ export default function App() {
           {currentTab === 'accueil' && (
             <div className="p-3.5 sm:p-5 pb-24 space-y-4">
               {/* Promotional Hero Banner for Mobile Money & Local Marketplace */}
-              <div className="relative overflow-hidden bg-gradient-to-r from-[#167d4f] to-[#0d5937] text-white rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between">
+              <div className="relative overflow-hidden bg-gradient-to-r from-[#0B8457] to-[#076245] text-white rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between">
                 <div className="space-y-1 z-10 max-w-[70%]">
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-extrabold uppercase tracking-wide">
                     <ShieldCheck className="w-3 h-3 text-emerald-300" />
@@ -455,7 +455,7 @@ export default function App() {
                     <p className="text-xs text-slate-400 mt-1">Soyez le premier à déposer une annonce !</p>
                     <button
                       onClick={() => setIsSellModalOpen(true)}
-                      className="mt-3 px-4 py-2 bg-[#f95738] text-white rounded-xl text-xs font-bold shadow-sm"
+                      className="mt-3 px-4 py-2 bg-[#FF6B47] text-white rounded-xl text-xs font-bold shadow-sm"
                     >
                       Déposer une annonce
                     </button>

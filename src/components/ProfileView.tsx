@@ -185,7 +185,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <h3 className="text-base font-bold text-slate-800">Mes articles en vente</h3>
             <button
               onClick={onOpenSellModal}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f95738] text-white rounded-xl text-xs font-bold shadow-xs hover:bg-[#e04526] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FF6B47] text-white rounded-xl text-xs font-bold shadow-xs hover:bg-[#E85A38] transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>Publier un article</span>
@@ -207,7 +207,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-xs sm:text-sm font-bold text-slate-800 truncate">{p.title}</h4>
-                    <p className="text-xs font-extrabold text-[#f95738]">
+                    <p className="text-xs font-extrabold text-[#FF6B47]">
                       {new Intl.NumberFormat('fr-FR').format(p.price)} FCFA
                     </p>
                     <span
@@ -244,7 +244,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <p className="text-xs text-slate-400 mt-1">Vendez des vêtements, téléphones, meubles facilement !</p>
               <button
                 onClick={onOpenSellModal}
-                className="mt-4 px-4 py-2 bg-[#f95738] text-white rounded-xl text-xs font-bold"
+                className="mt-4 px-4 py-2 bg-[#FF6B47] text-white rounded-xl text-xs font-bold"
               >
                 Vendre mon premier article
               </button>

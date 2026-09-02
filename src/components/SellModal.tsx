@@ -423,7 +423,7 @@ export const SellModal: React.FC<SellModalProps> = ({
                   id="btn-publish-listing"
                   type="submit"
                   disabled={uploading || images.length === 0}
-                  className="w-full py-4 bg-[#f95738] hover:bg-[#e04526] text-white font-extrabold rounded-2xl shadow-lg shadow-orange-500/25 active:scale-98 transition-all text-base font-display disabled:opacity-50"
+                  className="w-full py-4 bg-[#FF6B47] hover:bg-[#E85A38] text-white font-extrabold rounded-2xl shadow-lg shadow-orange-500/25 active:scale-98 transition-all text-base font-display disabled:opacity-50"
                 >
                   {uploading ? 'Envoi des photos...' : "Publier l'annonce"}
                 </button>

@@ -1,6 +1,5 @@
 import type { Config } from '@netlify/functions';
 import { getDatabase } from '@netlify/database';
-import { INITIAL_PRODUCTS } from '../../src/data/mockData';
 import type { Product } from '../../src/types';
 import { getUserFromRequest } from '../lib/auth';
 
@@ -8,18 +7,6 @@ export default async (req: Request) => {
   const db = getDatabase();
 
   if (req.method === 'GET') {
-    const [{ count }] = await db.sql`SELECT COUNT(*)::int AS count FROM products`;
-
-    if (count === 0) {
-      for (const p of INITIAL_PRODUCTS) {
-        await db.sql`
-          INSERT INTO products (id, seller_id, category, city, is_sold, data)
-          VALUES (${p.id}, ${p.seller.id}, ${p.category}, ${p.city}, ${p.isSold ?? false}, ${JSON.stringify(p)}::jsonb)
-          ON CONFLICT (id) DO NOTHING
-        `;
-      }
-    }
-
     const rows = await db.sql`SELECT data FROM products ORDER BY created_at DESC`;
     const products = rows.map((r: { data: Product }) => r.data);
 

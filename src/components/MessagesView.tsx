@@ -112,7 +112,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                   seller: activeConversation.seller,
                 })
               }
-              className="px-3 py-1 bg-[#f95738] hover:bg-[#e04526] text-white font-bold rounded-lg text-xs shadow-xs"
+              className="px-3 py-1 bg-[#FF6B47] hover:bg-[#E85A38] text-white font-bold rounded-lg text-xs shadow-xs"
             >
               Acheter ({new Intl.NumberFormat('fr-FR').format(activeConversation.productPrice)} FCFA)
             </button>

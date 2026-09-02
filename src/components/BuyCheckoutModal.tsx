@@ -112,7 +112,7 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-bold text-slate-800 truncate">{product.title}</h4>
                     <p className="text-xs text-slate-500 truncate">{product.location}</p>
-                    <p className="text-base font-extrabold text-[#f95738] mt-0.5">
+                    <p className="text-base font-extrabold text-[#FF6B47] mt-0.5">
                       {new Intl.NumberFormat('fr-FR').format(product.price)} FCFA
                     </p>
                   </div>
@@ -254,7 +254,7 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
                     </div>
                     <div className="pt-2 border-t border-slate-200 flex justify-between font-extrabold text-sm text-slate-900">
                       <span>Total à payer</span>
-                      <span className="text-[#f95738]">
+                      <span className="text-[#FF6B47]">
                         {new Intl.NumberFormat('fr-FR').format(totalAmount)} FCFA
                       </span>
                     </div>
@@ -273,7 +273,7 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
                       id="btn-confirm-payment"
                       type="submit"
                       disabled={isProcessing}
-                      className="w-full py-4 bg-[#f95738] hover:bg-[#e04526] text-white font-bold rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-75"
+                      className="w-full py-4 bg-[#FF6B47] hover:bg-[#E85A38] text-white font-bold rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-75"
                     >
                       {isProcessing ? (
                         <>
