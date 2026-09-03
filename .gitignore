@@ -7,3 +7,13 @@ coverage/
 .env*
 !.env.example
 .netlify/
+
+# Android (Capacitor) build outputs — keep the project source, not generated builds
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/captures/
+android/app/release/
+*.apk
+*.aab
