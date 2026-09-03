@@ -65,7 +65,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     return 0; // default recent
   });
 
-  const isBrowsing = query.trim() === '' && selectedCategory === 'Tous';
+  const isBrowsing = query.trim() === '' && selectedCategory === 'Tous' && !showFilters;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-4 pb-24">
@@ -77,6 +77,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
               onClick={() => {
                 setSelectedCategory('Tous');
                 setQuery('');
+                setShowFilters(false);
               }}
               className="p-3 rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shrink-0"
               aria-label="Retour aux catégories"
@@ -120,7 +121,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         </div>
 
         {/* Collapsible Filter Panel */}
-        {!isBrowsing && showFilters && (
+        {showFilters && (
           <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {/* Category */}
