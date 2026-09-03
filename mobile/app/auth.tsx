@@ -12,7 +12,7 @@ import {
 import { apiFetch } from '../lib/api';
 import { useAuth } from '../lib/auth-context';
 import { colors } from '../lib/theme';
-import { Ionicons } from '@expo/vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 type Step = 'phone' | 'code';
 
