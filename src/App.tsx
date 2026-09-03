@@ -22,6 +22,7 @@ export interface CurrentUser {
   name: string;
   avatar: string | null;
   city: string | null;
+  bio: string | null;
   verifiedMobileMoney: boolean;
   memberSince: string;
   salesCount: number;
@@ -65,6 +66,23 @@ export default function App() {
     localStorage.removeItem(TOKEN_KEY);
     setAuthToken(null);
     setCurrentUser(null);
+  };
+
+  const handleUpdateProfile = (patch: { name?: string; avatar?: string; city?: string; bio?: string }) => {
+    if (!authToken) return Promise.reject(new Error('not authenticated'));
+    return fetch('/api/me', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
+      body: JSON.stringify(patch),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('update failed');
+        return res.json();
+      })
+      .then((user: CurrentUser) => {
+        setCurrentUser(user);
+        return user;
+      });
   };
 
   // State Initialization
@@ -492,6 +510,7 @@ export default function App() {
           {currentTab === 'profil' && (
             <ProfileView
               currentUser={currentUser}
+              authToken={authToken}
               userProducts={userListings}
               favoriteProducts={favoriteProductsList}
               favorites={favorites}
@@ -501,6 +520,7 @@ export default function App() {
               onDeleteUserProduct={handleDeleteUserProduct}
               onToggleSoldStatus={handleToggleSoldStatus}
               onLogout={handleLogout}
+              onUpdateProfile={handleUpdateProfile}
             />
           )}
         </main>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   User,
   ShieldCheck,
@@ -14,13 +14,18 @@ import {
   Sparkles,
   MapPin,
   Phone,
+  Camera,
+  Loader2,
 } from 'lucide-react';
 import { Product } from '../types';
 import { ProductCard } from './ProductCard';
 import type { CurrentUser } from '../App';
+import { uploadImage } from '../utils/uploadImage';
+import { BENIN_LOCATIONS } from '../data/mockData';
 
 interface ProfileViewProps {
   currentUser: CurrentUser;
+  authToken: string;
   userProducts: Product[];
   favoriteProducts: Product[];
   favorites: string[];
@@ -30,10 +35,12 @@ interface ProfileViewProps {
   onDeleteUserProduct: (id: string) => void;
   onToggleSoldStatus: (id: string) => void;
   onLogout: () => void;
+  onUpdateProfile: (patch: { name?: string; avatar?: string; city?: string; bio?: string }) => Promise<any>;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
   currentUser,
+  authToken,
   userProducts,
   favoriteProducts,
   favorites,
@@ -43,11 +50,60 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onDeleteUserProduct,
   onToggleSoldStatus,
   onLogout,
+  onUpdateProfile,
 }) => {
   const [activeTab, setActiveTab] = useState<'listings' | 'favorites' | 'wallet' | 'settings'>('listings');
   const [walletBalance, setWalletBalance] = useState(0);
   const [showTopupModal, setShowTopupModal] = useState(false);
   const [topupAmount, setTopupAmount] = useState('10000');
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [bioDraft, setBioDraft] = useState(currentUser.bio || '');
+  const [isSavingBio, setIsSavingBio] = useState(false);
+  const [bioSaved, setBioSaved] = useState(false);
+  const [isSavingCity, setIsSavingCity] = useState(false);
+  const MAX_BIO = 150;
+
+  const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    try {
+      const url = await uploadImage(file, authToken);
+      await onUpdateProfile({ avatar: url });
+    } catch (err) {
+      alert("Erreur lors de l'envoi de la photo. Réessayez.");
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
+
+  const handleSaveBio = async () => {
+    setIsSavingBio(true);
+    setBioSaved(false);
+    try {
+      await onUpdateProfile({ bio: bioDraft.trim() });
+      setBioSaved(true);
+      setTimeout(() => setBioSaved(false), 2000);
+    } catch {
+      alert('Impossible d\'enregistrer la bio. Réessayez.');
+    } finally {
+      setIsSavingBio(false);
+    }
+  };
+
+  const handleChangeCity = async (city: string) => {
+    setIsSavingCity(true);
+    try {
+      await onUpdateProfile({ city });
+    } catch {
+      alert('Impossible de mettre à jour la ville. Réessayez.');
+    } finally {
+      setIsSavingCity(false);
+    }
+  };
 
   const handleTopup = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +126,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="absolute bottom-0 right-0 bg-emerald-600 text-white p-1 rounded-full border-2 border-white shadow-xs">
             <ShieldCheck className="w-4 h-4" />
           </div>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarPick}
+          />
+          <button
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={isUploadingAvatar}
+            className="absolute -top-1 -right-1 bg-white text-emerald-700 p-1.5 rounded-full border border-emerald-200 shadow-md hover:bg-emerald-50 disabled:opacity-60"
+            title="Changer ma photo de profil"
+          >
+            {isUploadingAvatar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+          </button>
         </div>
 
         <div className="flex-1 text-center sm:text-left">
@@ -88,6 +159,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </span>
             )}
           </div>
+
+          {currentUser.bio && (
+            <p className="text-sm text-slate-600 mb-2 max-w-md">{currentUser.bio}</p>
+          )}
 
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-slate-500 mb-3">
             <span className="flex items-center gap-1">
@@ -389,14 +464,54 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <div className="text-xs text-slate-500">{currentUser.phone}</div>
               </div>
             </div>
-            <div className="pt-2 flex items-center justify-between">
-              <div>
-                <div className="font-semibold text-slate-800">Zone de livraison par défaut</div>
-                <div className="text-xs text-slate-500">Cotonou, Fidjrossè</div>
+
+            <div className="pt-3">
+              <div className="font-semibold text-slate-800 mb-1">Ma bio</div>
+              <p className="text-[11px] text-slate-400 mb-2">
+                Parle un peu de toi : ce que tu vends, ton style. Ça rassure les acheteurs.
+              </p>
+              <textarea
+                value={bioDraft}
+                onChange={(e) => setBioDraft(e.target.value.slice(0, MAX_BIO))}
+                rows={3}
+                placeholder="Ex: Vendeuse de vêtements et chaussures à Cotonou, réponse rapide 🙂"
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 resize-none focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              />
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-[10px] text-slate-400">{bioDraft.length}/{MAX_BIO}</span>
+                <div className="flex items-center gap-2">
+                  {bioSaved && <span className="text-[11px] text-emerald-600 font-bold">Enregistré ✓</span>}
+                  <button
+                    onClick={handleSaveBio}
+                    disabled={isSavingBio || bioDraft.trim() === (currentUser.bio || '')}
+                    className="text-xs text-white font-bold bg-emerald-700 hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+                  >
+                    {isSavingBio && <Loader2 className="w-3 h-3 animate-spin" />}
+                    Enregistrer
+                  </button>
+                </div>
               </div>
-              <button className="text-xs text-emerald-700 font-bold">Changer</button>
             </div>
-            <div className="pt-2 flex items-center justify-between">
+
+            <div className="pt-3 flex items-center justify-between gap-3">
+              <div>
+                <div className="font-semibold text-slate-800">Ville / Zone de livraison par défaut</div>
+                <div className="text-xs text-slate-500">{currentUser.city || 'Non renseignée'}</div>
+              </div>
+              <select
+                value={currentUser.city || ''}
+                onChange={(e) => handleChangeCity(e.target.value)}
+                disabled={isSavingCity}
+                className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1.5 disabled:opacity-50"
+              >
+                <option value="" disabled>Choisir une ville</option>
+                {BENIN_LOCATIONS.map((loc) => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="pt-3 flex items-center justify-between">
               <div>
                 <div className="font-semibold text-slate-800">Notifications SMS de vente</div>
                 <div className="text-xs text-slate-500">Activé pour chaque offre reçue</div>

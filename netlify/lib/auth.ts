@@ -6,6 +6,7 @@ export interface AuthUser {
   name: string;
   avatar: string | null;
   city: string | null;
+  bio: string | null;
   verifiedMobileMoney: boolean;
   memberSince: string;
   salesCount: number;
@@ -21,6 +22,7 @@ function rowToUser(row: any): AuthUser {
     name: row.name,
     avatar: row.avatar,
     city: row.city,
+    bio: row.bio,
     verifiedMobileMoney: row.verified_mobile_money,
     memberSince: row.member_since,
     salesCount: row.sales_count,
