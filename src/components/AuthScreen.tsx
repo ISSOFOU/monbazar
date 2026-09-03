@@ -77,12 +77,17 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
         className="w-full max-w-sm bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 sm:p-8"
       >
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-700 flex items-center justify-center mb-3">
-            <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
-              <path d="M37,40 Q37,22 50,22 Q63,22 63,40" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" fill="none" />
-              <path d="M26,40 L74,40 L69,89 Q68.5,94 63,94 L37,94 Q31.5,94 31,89 Z" fill="#FFFFFF" />
-              <path d="M40,54 Q50,65 60,54" stroke="#0B8457" strokeWidth="4.5" strokeLinecap="round" fill="none" />
-            </svg>
+          <div className="relative mb-3">
+            <div className="w-16 h-16 rounded-2xl bg-[#0B8457] flex items-center justify-center">
+              <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
+                <path d="M37,40 Q37,22 50,22 Q63,22 63,40" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" fill="none" />
+                <path d="M26,40 L74,40 L69,89 Q68.5,94 63,94 L37,94 Q31.5,94 31,89 Z" fill="#FFFFFF" />
+                <path d="M40,54 Q50,65 60,54" stroke="#0B8457" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+              </svg>
+            </div>
+            <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-[#FF6B47] border-2 border-white rounded-full shadow-xs flex items-center justify-center">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="#ffffff"><path d="M12 21s-6.7-4.3-9.3-8.1C1 10.2 1.6 6.9 4.3 5.3c2.1-1.2 4.6-.6 6 1.2l1.7 2.1 1.7-2.1c1.4-1.8 3.9-2.4 6-1.2 2.7 1.6 3.3 4.9 1.6 7.6C18.7 16.7 12 21 12 21z"/></svg>
+            </div>
           </div>
           <h1 className="text-xl font-extrabold text-slate-900 font-display">
             Mon <span className="text-emerald-700">Bazar</span>

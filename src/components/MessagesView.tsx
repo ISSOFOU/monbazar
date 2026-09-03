@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Send, ArrowLeft, ShieldCheck, CheckCircle2, DollarSign, Sparkles } from 'lucide-react';
 import { Conversation, Product } from '../types';
+import { formatRelativeTime, formatMessageTime } from '../utils/formatDate';
 
 interface MessagesViewProps {
   conversations: Conversation[];
@@ -157,7 +158,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                     )}
                     <p className="leading-relaxed">{msg.text}</p>
                   </div>
-                  <span className="text-[10px] text-slate-400 mt-1 px-1">{msg.timestamp}</span>
+                  <span className="text-[10px] text-slate-400 mt-1 px-1">{formatMessageTime(msg.timestamp)}</span>
                 </div>
               );
             })}
@@ -228,7 +229,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                       <span className="font-bold text-sm text-slate-900 truncate">
                         {other?.name}
                       </span>
-                      <span className="text-[11px] text-slate-400">{conv.lastMessageTime}</span>
+                      <span className="text-[11px] text-slate-400">{formatRelativeTime(conv.lastMessageTime)}</span>
                     </div>
                     <p className="text-xs font-medium text-emerald-600 truncate mb-0.5">
                       Article : {conv.productTitle}

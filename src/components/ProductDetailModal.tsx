@@ -19,6 +19,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { Product } from '../types';
+import { formatRelativeTime } from '../utils/formatDate';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -261,7 +262,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 text-slate-500 rounded-full text-xs">
                     <Clock className="w-3 h-3" />
-                    {product.createdAt}
+                    {formatRelativeTime(product.createdAt)}
                   </span>
                 </div>
               </div>
