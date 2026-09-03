@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Search, SlidersHorizontal, MapPin, X, ArrowUpDown } from 'lucide-react';
+import { Search, SlidersHorizontal, MapPin, X, ArrowUpDown, ArrowLeft } from 'lucide-react';
 import { Product, Condition, Category } from '../types';
 import { BENIN_LOCATIONS, CATEGORIES_LIST } from '../data/mockData';
 import { ProductCard } from './ProductCard';
+import { BrowseGrid } from './BrowseGrid';
 
 interface SearchViewProps {
   products: Product[];
@@ -22,7 +23,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const [selectedLocation, setSelectedLocation] = useState<string>('Tout le Bénin');
   const [selectedCondition, setSelectedCondition] = useState<string>('Tous');
   const [maxPrice, setMaxPrice] = useState<number>(100000);
-  const [sortBy, setSortBy] = useState<'recent' | 'price_asc' | 'price_desc'>('recent');
+  const [sortBy, setSortBy] = useState<'recent' | 'price_asc' | 'price_desc' | 'popular'>('recent');
   const [showFilters, setShowFilters] = useState(false);
 
   const filteredProducts = products.filter((p) => {
@@ -31,7 +32,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
       query.trim() === '' ||
       p.title.toLowerCase().includes(query.toLowerCase()) ||
       p.description.toLowerCase().includes(query.toLowerCase()) ||
-      p.category.toLowerCase().includes(query.toLowerCase());
+      p.category.toLowerCase().includes(query.toLowerCase()) ||
+      (p.brand ?? '').toLowerCase().includes(query.toLowerCase());
 
     // Category match
     const matchCat =
@@ -55,14 +57,33 @@ export const SearchView: React.FC<SearchViewProps> = ({
   }).sort((a, b) => {
     if (sortBy === 'price_asc') return a.price - b.price;
     if (sortBy === 'price_desc') return b.price - a.price;
+    if (sortBy === 'popular') {
+      const scoreA = (a.viewsCount ?? 0) + (a.likesCount ?? 0) * 3;
+      const scoreB = (b.viewsCount ?? 0) + (b.likesCount ?? 0) * 3;
+      return scoreB - scoreA;
+    }
     return 0; // default recent
   });
+
+  const isBrowsing = query.trim() === '' && selectedCategory === 'Tous';
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-4 pb-24">
       {/* Search Header */}
       <div className="mb-4 space-y-3">
         <div className="flex items-center gap-2">
+          {!isBrowsing && (
+            <button
+              onClick={() => {
+                setSelectedCategory('Tous');
+                setQuery('');
+              }}
+              className="p-3 rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shrink-0"
+              aria-label="Retour aux catégories"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          )}
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -99,7 +120,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         </div>
 
         {/* Collapsible Filter Panel */}
-        {showFilters && (
+        {!isBrowsing && showFilters && (
           <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {/* Category */}
@@ -159,6 +180,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
                 >
                   <option value="recent">Plus récents</option>
+                  <option value="popular">Popularité</option>
                   <option value="price_asc">Prix croissant (FCFA)</option>
                   <option value="price_desc">Prix décroissant (FCFA)</option>
                 </select>
@@ -185,29 +207,32 @@ export const SearchView: React.FC<SearchViewProps> = ({
         )}
 
         {/* Results Counter and active tags */}
-        <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-          <span className="font-semibold">
-            {filteredProducts.length} article{filteredProducts.length > 1 ? 's' : ''} trouvé{filteredProducts.length > 1 ? 's' : ''}
-          </span>
-          {(selectedCategory !== 'Tous' || selectedLocation !== 'Tout le Bénin' || selectedCondition !== 'Tous' || query) && (
-            <button
-              onClick={() => {
-                setSelectedCategory('Tous');
-                setSelectedLocation('Tout le Bénin');
-                setSelectedCondition('Tous');
-                setMaxPrice(100000);
-                setQuery('');
-              }}
-              className="text-emerald-700 hover:text-emerald-800 font-bold underline"
-            >
-              Réinitialiser les filtres
-            </button>
-          )}
-        </div>
+        {!isBrowsing && (
+          <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+            <span className="font-semibold">
+              {filteredProducts.length} article{filteredProducts.length > 1 ? 's' : ''} trouvé{filteredProducts.length > 1 ? 's' : ''}
+            </span>
+            {(selectedCategory !== 'Tous' || selectedLocation !== 'Tout le Bénin' || selectedCondition !== 'Tous' || query) && (
+              <button
+                onClick={() => {
+                  setSelectedCategory('Tous');
+                  setSelectedLocation('Tout le Bénin');
+                  setSelectedCondition('Tous');
+                  setMaxPrice(100000);
+                  setQuery('');
+                }}
+                className="text-emerald-700 hover:text-emerald-800 font-bold underline"
+              >
+                Réinitialiser les filtres
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Products Grid */}
-      {filteredProducts.length > 0 ? (
+      {isBrowsing ? (
+        <BrowseGrid onSelectCategory={setSelectedCategory} />
+      ) : filteredProducts.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
           {filteredProducts.map((product) => (
             <ProductCard

@@ -15,10 +15,11 @@ interface SellModalProps {
 const MAX_PHOTOS = 10;
 
 const CATEGORIES: Category[] = [
-  'Mode & Friperie',
+  'Femmes',
+  'Hommes',
   'High-Tech',
   'Maison',
-  'Beauté',
+  'Beauté & Santé',
   'Enfants & Bébés',
   'Artisanat',
   'Véhicules',
@@ -42,7 +43,8 @@ export const SellModal: React.FC<SellModalProps> = ({
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<Category>('Mode & Friperie');
+  const [category, setCategory] = useState<Category>('Femmes');
+  const [brand, setBrand] = useState('');
   const [condition, setCondition] = useState<Condition>('Très bon état');
   const [price, setPrice] = useState<number | ''>('');
   const [isNegotiable, setIsNegotiable] = useState(true);
@@ -94,6 +96,7 @@ export const SellModal: React.FC<SellModalProps> = ({
       title: title.trim(),
       price: Number(price),
       category,
+      brand: brand.trim() || undefined,
       condition,
       location,
       city: location.split(',')[0].trim(),
@@ -108,6 +111,7 @@ export const SellModal: React.FC<SellModalProps> = ({
     setTitle('');
     setPrice('');
     setDescription('');
+    setBrand('');
     onClose();
   };
 
@@ -290,6 +294,23 @@ export const SellModal: React.FC<SellModalProps> = ({
                   })}
                 </div>
               </div>
+
+              {/* 3b. Marque (optionnel, utile pour la mode/enfants) */}
+              {(category === 'Femmes' || category === 'Hommes' || category === 'Enfants & Bébés') && (
+                <div>
+                  <label className="block text-sm font-bold text-slate-800 mb-1.5">
+                    Marque <span className="text-xs font-normal text-slate-500">(optionnel)</span>
+                  </label>
+                  <input
+                    id="input-sell-brand"
+                    type="text"
+                    placeholder="Ex : Nike, Zara, Samsung..."
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value.slice(0, 40))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400"
+                  />
+                </div>
+              )}
 
               {/* 4. État de l'article matching Image 3 custom radio items */}
               <div>

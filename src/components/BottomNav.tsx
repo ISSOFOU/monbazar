@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Plus, MessageCircle, User } from 'lucide-react';
+import { Home, LayoutGrid, Plus, MessageCircle, User } from 'lucide-react';
 import { TabType } from '../types';
 
 interface BottomNavProps {
@@ -42,8 +42,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <Search className={`w-5 h-5 ${currentTab === 'recherche' ? 'stroke-[2.5]' : ''}`} />
-          <span className="text-[11px] mt-1">Recherche</span>
+          <LayoutGrid className={`w-5 h-5 ${currentTab === 'recherche' ? 'stroke-[2.5]' : ''}`} />
+          <span className="text-[11px] mt-1">Parcourir</span>
         </button>
 
         {/* 3. Center Orange Floating Action Button (+) matching screenshot */}

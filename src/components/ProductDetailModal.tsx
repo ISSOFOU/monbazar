@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
@@ -17,9 +17,20 @@ import {
   Check,
   Copy,
   ExternalLink,
+  UserPlus,
+  UserCheck,
+  Flag,
 } from 'lucide-react';
 import { Product } from '../types';
 import { formatRelativeTime } from '../utils/formatDate';
+
+const REPORT_REASONS: { value: string; label: string }[] = [
+  { value: 'contrefacon', label: 'Contrefaçon / article non conforme' },
+  { value: 'arnaque', label: 'Tentative d’arnaque' },
+  { value: 'contenu_interdit', label: 'Contenu interdit ou dangereux' },
+  { value: 'spam', label: 'Spam / annonce en double' },
+  { value: 'autre', label: 'Autre raison' },
+];
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -30,6 +41,8 @@ interface ProductDetailModalProps {
   onOpenMakeOffer: (product: Product) => void;
   onOpenBuyCheckout: (product: Product) => void;
   onStartChat: (product: Product) => void;
+  authToken: string | null;
+  currentUserId?: string;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -41,12 +54,85 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onOpenMakeOffer,
   onOpenBuyCheckout,
   onStartChat,
+  authToken,
+  currentUserId,
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [copiedToast, setCopiedToast] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState<number | null>(null);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportMessage, setReportMessage] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
+
+  useEffect(() => {
+    setCurrentImageIndex(0);
+    setShowReportModal(false);
+    setReportReason('');
+    setReportMessage('');
+    setReportSent(false);
+    if (!product) return;
+
+    fetch(`/api/follows/${product.seller.id}`, {
+      headers: authToken ? { authorization: `Bearer ${authToken}` } : {},
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setIsFollowing(data.isFollowing);
+        setFollowersCount(data.followersCount);
+      })
+      .catch(() => {});
+  }, [product?.id, authToken]);
+
+  const handleToggleFollow = async () => {
+    if (!product || !authToken) return;
+    setFollowLoading(true);
+    try {
+      const res = await fetch(`/api/follows/${product.seller.id}`, {
+        method: isFollowing ? 'DELETE' : 'POST',
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsFollowing(data.isFollowing);
+        setFollowersCount(data.followersCount);
+      }
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleSubmitReport = async () => {
+    if (!product || !authToken || !reportReason) return;
+    setReportSubmitting(true);
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          targetType: 'product',
+          targetId: product.id,
+          reason: reportReason,
+          message: reportMessage.trim(),
+        }),
+      });
+      if (res.ok) {
+        setReportSent(true);
+        setTimeout(() => setShowReportModal(false), 1800);
+      }
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
 
   if (!product) return null;
+
+  const isOwnListing = currentUserId === product.seller.id;
 
   const formattedPrice = new Intl.NumberFormat('fr-FR').format(product.price);
   const images = product.images.length > 0 ? product.images : [
@@ -136,6 +222,17 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </button>
 
               <div className="flex items-center gap-2">
+                {!isOwnListing && (
+                  <button
+                    id="btn-detail-report"
+                    onClick={() => setShowReportModal(true)}
+                    aria-label="Signaler l'annonce"
+                    title="Signaler l'annonce"
+                    className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md text-slate-800 hover:text-red-600 flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Flag className="w-4 h-4" />
+                  </button>
+                )}
                 <button
                   id="btn-detail-share"
                   onClick={handleShare}
@@ -234,6 +331,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div className="p-5 flex-1 flex flex-col gap-5 pb-28">
               {/* Title & Price Header */}
               <div>
+                {product.brand && (
+                  <span className="inline-block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    {product.brand}
+                  </span>
+                )}
                 <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-display leading-tight mb-2">
                   {product.title}
                 </h1>
@@ -330,18 +432,36 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
                       Membre depuis {product.seller.memberSince} · {product.seller.salesCount} ventes
+                      {followersCount !== null && ` · ${followersCount} abonné${followersCount > 1 ? 's' : ''}`}
                     </p>
                   </div>
                 </div>
 
-                <button
-                  id="btn-chat-seller-direct"
-                  onClick={() => onStartChat(product)}
-                  className="p-2.5 rounded-xl bg-white border border-slate-200 text-emerald-700 hover:bg-emerald-50 transition-colors shadow-2xs cursor-pointer"
-                  title="Envoyer un message"
-                >
-                  <MessageCircle className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {!isOwnListing && authToken && (
+                    <button
+                      id="btn-toggle-follow-seller"
+                      onClick={handleToggleFollow}
+                      disabled={followLoading}
+                      title={isFollowing ? 'Se désabonner' : 'Suivre ce vendeur'}
+                      className={`p-2.5 rounded-xl border transition-colors shadow-2xs cursor-pointer disabled:opacity-50 ${
+                        isFollowing
+                          ? 'bg-emerald-700 border-emerald-700 text-white hover:bg-emerald-800'
+                          : 'bg-white border-slate-200 text-emerald-700 hover:bg-emerald-50'
+                      }`}
+                    >
+                      {isFollowing ? <UserCheck className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+                    </button>
+                  )}
+                  <button
+                    id="btn-chat-seller-direct"
+                    onClick={() => onStartChat(product)}
+                    className="p-2.5 rounded-xl bg-white border border-slate-200 text-emerald-700 hover:bg-emerald-50 transition-colors shadow-2xs cursor-pointer"
+                    title="Envoyer un message"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Trust & Mobile Money Banner */}
@@ -391,6 +511,78 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </button>
             </div>
           </motion.div>
+
+          {/* Report Modal */}
+          <AnimatePresence>
+            {showReportModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+                onClick={(e) => e.target === e.currentTarget && setShowReportModal(false)}
+              >
+                <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                      <Flag className="w-4 h-4 text-red-600" />
+                      Signaler cette annonce
+                    </h3>
+                    <button onClick={() => setShowReportModal(false)} className="text-slate-400">✕</button>
+                  </div>
+
+                  {reportSent ? (
+                    <div className="py-6 text-center">
+                      <Check className="w-10 h-10 text-emerald-600 mx-auto mb-2" />
+                      <p className="text-sm font-bold text-slate-800">Signalement envoyé, merci.</p>
+                      <p className="text-xs text-slate-500 mt-1">Notre équipe va l'examiner rapidement.</p>
+                    </div>
+                  ) : !authToken ? (
+                    <p className="text-xs text-slate-500">Connecte-toi pour signaler une annonce.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        {REPORT_REASONS.map((r) => (
+                          <label
+                            key={r.value}
+                            className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold cursor-pointer ${
+                              reportReason === r.value
+                                ? 'border-red-400 bg-red-50 text-red-800'
+                                : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="report-reason"
+                              value={r.value}
+                              checked={reportReason === r.value}
+                              onChange={() => setReportReason(r.value)}
+                              className="accent-red-600"
+                            />
+                            {r.label}
+                          </label>
+                        ))}
+                      </div>
+                      <textarea
+                        value={reportMessage}
+                        onChange={(e) => setReportMessage(e.target.value.slice(0, 500))}
+                        rows={2}
+                        placeholder="Précise le problème (optionnel)"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs resize-none focus:outline-hidden focus:ring-2 focus:ring-red-400"
+                      />
+                      <button
+                        onClick={handleSubmitReport}
+                        disabled={!reportReason || reportSubmitting}
+                        className="w-full py-3 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm"
+                      >
+                        {reportSubmitting ? 'Envoi...' : 'Envoyer le signalement'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>

@@ -18,14 +18,15 @@ export const BENIN_LOCATIONS = [
 
 export const CATEGORIES_LIST = [
   'Tous',
-  'Mode & Friperie',
+  'Femmes',
+  'Hommes',
   'High-Tech',
   'Maison',
   'Beauté & Santé',
   'Enfants & Bébés',
   'Artisanat',
   'Véhicules',
-  'Loisirs & Sport'
+  'Loisirs & Sport',
 ];
 
 // No demo listings or conversations — real data comes from the shared

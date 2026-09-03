@@ -561,6 +561,8 @@ export default function App() {
           setIsCheckoutModalOpen(true);
         }}
         onStartChat={handleStartChat}
+        authToken={authToken}
+        currentUserId={currentUser?.id}
       />
 
       {/* Make Offer Modal */}

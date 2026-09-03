@@ -7,7 +7,9 @@ export type Condition =
   | 'État correct'
   | 'Fait main';
 
-export type Category = 
+export type Category =
+  | 'Femmes'
+  | 'Hommes'
   | 'Mode & Friperie'
   | 'High-Tech'
   | 'Maison'
@@ -39,6 +41,7 @@ export interface Product {
   originalPrice?: number;
   images: string[];
   category: Category;
+  brand?: string;
   condition: Condition;
   location: string;
   city: string;
