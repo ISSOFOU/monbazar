@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { Send, ArrowLeft, ShieldCheck, CheckCircle2, DollarSign, Sparkles } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Send, ArrowLeft, ShieldCheck, CheckCircle2, DollarSign, Sparkles, Loader2, PackageCheck } from 'lucide-react';
 import { Conversation, Product } from '../types';
 import { formatRelativeTime, formatMessageTime } from '../utils/formatDate';
 
 interface MessagesViewProps {
   conversations: Conversation[];
   currentUserId: string;
+  authToken: string;
   onSendMessage: (conversationId: string, text: string) => void;
   onOpenConversation: (conversationId: string) => void;
   onOpenCheckoutFromChat: (productInfo: { id: string; title: string; price: number; images: string[]; location: string; seller: any }) => void;
@@ -15,6 +16,7 @@ interface MessagesViewProps {
 export const MessagesView: React.FC<MessagesViewProps> = ({
   conversations,
   currentUserId,
+  authToken,
   onSendMessage,
   onOpenConversation,
   onOpenCheckoutFromChat,
@@ -22,12 +24,39 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
 }) => {
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
+  const [payment, setPayment] = useState<{ id: string; status: string } | null>(null);
+  const [releasing, setReleasing] = useState(false);
 
   const activeConversation = conversations.find((c) => c.id === activeConvId);
   const isSellerView = activeConversation?.sellerId === currentUserId;
   const counterpart = activeConversation
     ? (isSellerView ? activeConversation.buyer : activeConversation.seller)
     : null;
+
+  useEffect(() => {
+    setPayment(null);
+    if (!activeConversation) return;
+    fetch(`/api/payments?productId=${activeConversation.productId}`, {
+      headers: { authorization: `Bearer ${authToken}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setPayment(data))
+      .catch(() => {});
+  }, [activeConversation?.productId, authToken]);
+
+  const handleConfirmReceipt = async () => {
+    if (!payment) return;
+    setReleasing(true);
+    try {
+      const res = await fetch(`/api/payments/${payment.id}/release`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+      if (res.ok) setPayment({ ...payment, status: 'released' });
+    } finally {
+      setReleasing(false);
+    }
+  };
 
   const openConversation = (id: string) => {
     setActiveConvId(id);
@@ -108,14 +137,18 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
           </div>
 
           {/* Product Banner Inside Chat */}
-          <div className="px-4 py-2 bg-emerald-50/50 border-b border-emerald-100/60 flex items-center justify-between text-xs">
+          <div className="px-4 py-2 bg-emerald-50/50 border-b border-emerald-100/60 flex items-center justify-between text-xs gap-2">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
               <span className="text-emerald-900 font-semibold">
-                Transaction protégée par Mon Bazar Mobile Money
+                {payment?.status === 'held' && 'Paiement reçu, fonds sécurisés en attente de remise'}
+                {payment?.status === 'released' && 'Transaction terminée, fonds libérés au vendeur'}
+                {payment?.status === 'pending' && 'Paiement en cours de validation...'}
+                {!payment && 'Transaction protégée par Mon Bazar Mobile Money'}
               </span>
             </div>
-            {!isSellerView && (
+
+            {!isSellerView && !payment && (
               <button
                 onClick={() =>
                   onOpenCheckoutFromChat({
@@ -127,9 +160,20 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                     seller: activeConversation.seller,
                   })
                 }
-                className="px-3 py-1 bg-[#FF6B47] hover:bg-[#E85A38] text-white font-bold rounded-lg text-xs shadow-xs"
+                className="px-3 py-1 bg-[#FF6B47] hover:bg-[#E85A38] text-white font-bold rounded-lg text-xs shadow-xs shrink-0"
               >
                 Acheter ({new Intl.NumberFormat('fr-FR').format(activeConversation.productPrice)} FCFA)
+              </button>
+            )}
+
+            {!isSellerView && payment?.status === 'held' && (
+              <button
+                onClick={handleConfirmReceipt}
+                disabled={releasing}
+                className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white font-bold rounded-lg text-xs shadow-xs shrink-0 flex items-center gap-1.5"
+              >
+                {releasing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackageCheck className="w-3.5 h-3.5" />}
+                Confirmer réception
               </button>
             )}
           </div>

@@ -48,11 +48,12 @@ export default async (req: Request) => {
       });
     }
 
+    const now = new Date().toISOString();
     const message = {
       id: `msg-${Date.now()}`,
       senderId: user.id,
       text,
-      timestamp: "À l'instant",
+      timestamp: now,
       ...(isOffer ? { isOffer: true, offerAmount, offerStatus: 'pending' } : {}),
     };
 
@@ -65,7 +66,7 @@ export default async (req: Request) => {
       const updatedData = {
         ...conv.data,
         lastMessage: text,
-        lastMessageTime: "À l'instant",
+        lastMessageTime: now,
         messages: [...conv.data.messages, message],
       };
 

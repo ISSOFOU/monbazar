@@ -40,17 +40,18 @@ export default async (req: Request, context: Context) => {
   }
 
   const isBuyer = conv.buyer_id === user.id;
+  const now = new Date().toISOString();
   const message = {
     id: `msg-${Date.now()}`,
     senderId: user.id,
     text,
-    timestamp: "À l'instant",
+    timestamp: now,
   };
 
   const updatedData = {
     ...conv.data,
     lastMessage: text,
-    lastMessageTime: "À l'instant",
+    lastMessageTime: now,
     messages: [...conv.data.messages, message],
   };
 

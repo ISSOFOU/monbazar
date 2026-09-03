@@ -234,25 +234,36 @@ export default function App() {
       .catch(() => showToast("Erreur : impossible d'envoyer l'offre"));
   };
 
-  // Checkout success
-  const handleSuccessPurchase = (prod: Product, details: any) => {
-    setIsCheckoutModalOpen(false);
-    setIsDetailModalOpen(false);
-    showToast(`🛍️ Achat de "${prod.title}" confirmé avec succès !`);
-
+  // Handle return from the Fedapay hosted checkout page (?payment_id=...).
+  useEffect(() => {
     if (!authToken) return;
+    const params = new URLSearchParams(window.location.search);
+    const paymentId = params.get('payment_id');
+    if (!paymentId) return;
 
-    fetch(`/api/products/${prod.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
-      body: JSON.stringify({ isSold: true }),
-    })
-      .then((res) => res.json())
-      .then((updated: Product) => {
-        setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    window.history.replaceState({}, '', window.location.pathname);
+
+    fetch(`/api/payments/${paymentId}`, { headers: { authorization: `Bearer ${authToken}` } })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payment) => {
+        if (!payment) return;
+        if (payment.status === 'held') {
+          showToast('🛍️ Paiement confirmé ! Tes fonds sont sécurisés jusqu\'à la remise.');
+          fetch('/api/products')
+            .then((res) => res.json())
+            .then(setProducts)
+            .catch(() => {});
+        } else if (payment.status === 'pending') {
+          showToast('⏳ Paiement en cours de validation...');
+        } else {
+          showToast('❌ Le paiement n\'a pas abouti.');
+        }
+        setIsCheckoutModalOpen(false);
+        setIsDetailModalOpen(false);
+        setCurrentTab('messages');
       })
       .catch(() => {});
-  };
+  }, [authToken]);
 
   // Start chat directly from product detail
   const handleStartChat = (prod: Product) => {
@@ -493,6 +504,7 @@ export default function App() {
             <MessagesView
               conversations={conversations}
               currentUserId={currentUser.id}
+              authToken={authToken ?? ''}
               onSendMessage={handleSendMessage}
               onOpenConversation={handleOpenConversation}
               onOpenCheckoutFromChat={(prodInfo) => {
@@ -581,7 +593,7 @@ export default function App() {
           isOpen={isCheckoutModalOpen}
           onClose={() => setIsCheckoutModalOpen(false)}
           product={checkoutProduct}
-          onSuccessPurchase={handleSuccessPurchase}
+          authToken={authToken ?? ''}
         />
       )}
 

@@ -1,47 +1,59 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ShieldCheck, CheckCircle2, Phone, ArrowRight, Lock, Sparkles, Bike, Handshake } from 'lucide-react';
+import { X, ShieldCheck, ArrowRight, Lock, Bike, Handshake, AlertTriangle } from 'lucide-react';
 import { Product } from '../types';
 
 interface BuyCheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product;
-  onSuccessPurchase: (product: Product, paymentDetails: any) => void;
+  authToken: string;
 }
 
 export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
   isOpen,
   onClose,
   product,
-  onSuccessPurchase,
+  authToken,
 }) => {
   const [paymentMethod, setPaymentMethod] = useState<'momo' | 'moov' | 'wave' | 'celtiis' | 'cash'>('momo');
   const [deliveryMethod, setDeliveryMethod] = useState<'zem' | 'pickup'>('zem');
   const [phoneNumber, setPhoneNumber] = useState('97 00 11 22');
   const [deliveryAddress, setDeliveryAddress] = useState('Cotonou, Fidjrossè');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const deliveryFee = deliveryMethod === 'zem' ? 1000 : 0;
   const buyerProtectionFee = 500;
   const totalAmount = product.price + deliveryFee + buyerProtectionFee;
 
-  const handlePay = (e: React.FormEvent) => {
+  const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsProcessing(true);
 
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          productId: product.id,
+          deliveryMethod,
+          deliveryAddress: `+229 ${phoneNumber} · ${deliveryAddress}`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Paiement impossible pour le moment.');
+        setIsProcessing(false);
+        return;
+      }
+      // Redirect to Fedapay's secure hosted checkout page.
+      window.location.href = data.checkoutUrl;
+    } catch {
+      setError('Erreur réseau, réessaie.');
       setIsProcessing(false);
-      setIsSuccess(true);
-      setTimeout(() => {
-        onSuccessPurchase(product, {
-          paymentMethod,
-          phoneNumber,
-          totalAmount,
-        });
-      }, 1500);
-    }, 1800);
+    }
   };
 
   return (
@@ -65,26 +77,13 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl z-10 max-h-[92vh] overflow-y-auto"
           >
-            {isSuccess ? (
-              <div className="py-8 flex flex-col items-center text-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4"
-                >
-                  <CheckCircle2 className="w-10 h-10 stroke-[2.5]" />
-                </motion.div>
-                <h3 className="text-xl font-bold text-slate-900 font-display">
-                  Paiement sécurisé effectué !
-                </h3>
-                <p className="text-sm text-slate-500 mt-1 max-w-xs">
-                  Vos fonds sont sécurisés par Mon Bazar et seront débloqués au vendeur dès confirmation de votre réception.
+            {isProcessing ? (
+              <div className="py-12 flex flex-col items-center text-center">
+                <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4" />
+                <h3 className="text-base font-bold text-slate-900">Redirection vers le paiement sécurisé...</h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                  Tu vas être redirigé vers la page Fedapay pour payer avec {paymentMethod === 'momo' ? 'MTN MoMo' : paymentMethod === 'moov' ? 'Moov Money' : paymentMethod === 'wave' ? 'Wave' : 'Celtiis Cash'}.
                 </p>
-                <div className="mt-4 p-3 bg-emerald-50 text-emerald-800 rounded-xl text-xs flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                  <span>SMS de confirmation envoyé au +229 {phoneNumber}</span>
-                </div>
               </div>
             ) : (
               <>
@@ -318,6 +317,13 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
                     </span>
                   </div>
 
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-100 text-red-700 rounded-xl text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
                   <div className="pt-2">
                     <button
                       id="btn-confirm-payment"
@@ -325,17 +331,8 @@ export const BuyCheckoutModal: React.FC<BuyCheckoutModalProps> = ({
                       disabled={isProcessing}
                       className="w-full py-4 bg-[#FF6B47] hover:bg-[#E85A38] text-white font-bold rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-75"
                     >
-                      {isProcessing ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Validation Mobile Money en cours...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Payer {new Intl.NumberFormat('fr-FR').format(totalAmount)} FCFA</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      )}
+                      <span>Payer {new Intl.NumberFormat('fr-FR').format(totalAmount)} FCFA</span>
+                      <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 </form>
