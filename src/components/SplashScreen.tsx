@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, Heart } from 'lucide-react';
 
 interface SplashScreenProps {
   onDismiss: () => void;
@@ -67,11 +67,20 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDismiss }) => {
                 strokeWidth="2.4"
                 fill="none"
               />
+              {/* Smile curve */}
+              <path
+                d="M9.5 14.5a2.7 2.7 0 0 0 5 0"
+                stroke="#0B8457"
+                strokeWidth="2"
+                fill="none"
+              />
             </svg>
           </div>
 
-          {/* Red Notification Dot badge */}
-          <div className="absolute -top-1 -right-1 w-9 h-9 bg-[#ff4d4d] border-4 border-[#fbfbfa] rounded-full shadow-md animate-bounce" />
+          {/* Coral heart accent badge */}
+          <div className="absolute -top-1 -right-1 w-9 h-9 bg-[#FF6B47] border-4 border-[#fbfbfa] rounded-full shadow-md animate-bounce flex items-center justify-center">
+            <Heart className="w-4 h-4 text-white" fill="currentColor" strokeWidth={0} />
+          </div>
         </motion.div>
 
         <motion.h1
@@ -106,8 +115,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onDismiss }) => {
           className="w-full py-4 px-6 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-200/80 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all active:scale-98 group"
         >
           <div className="w-8 h-8 rounded-lg bg-[#0B8457] flex items-center justify-center text-white">
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-              <path d="M6 9l1.5 11a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2L22 9H2z" />
+            <svg viewBox="0 0 24 24" className="w-4 h-4">
+              <path d="M6 9l1.5 11a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2L22 9H2z" fill="currentColor" />
+              <path d="M9.5 14.5a2.7 2.7 0 0 0 5 0" stroke="#0B8457" strokeWidth="2" fill="none" strokeLinecap="round" />
             </svg>
           </div>
           <span className="text-slate-800 text-lg">

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Heart } from 'lucide-react';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -61,12 +62,15 @@ export const Logo: React.FC<LogoProps> = ({
             <path d="M6 9l1.5 11a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2L22 9H2z" fill="currentColor" fillOpacity="0.95" stroke="none" />
             <path d="M6 9l1.5 11a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2L22 9H2z" />
             <path d="M9 9V6a3 3 0 0 1 6 0v3" stroke="#047857" strokeWidth="2.4" />
+            <path d="M9.5 14.5a2.7 2.7 0 0 0 5 0" stroke="#047857" strokeWidth="2" fill="none" />
           </svg>
         </div>
-        {/* Red notification dot */}
+        {/* Coral heart accent badge */}
         <span
-          className={`absolute ${dotSize} bg-[#ff5252] border-white rounded-full shadow-xs animate-pulse`}
-        />
+          className={`absolute ${dotSize} bg-[#FF6B47] border-white rounded-full shadow-xs flex items-center justify-center`}
+        >
+          <Heart className="w-[65%] h-[65%] text-white" fill="currentColor" strokeWidth={0} />
+        </span>
       </div>
 
       {showText && (
