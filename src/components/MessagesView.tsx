@@ -4,14 +4,18 @@ import { Conversation, Product } from '../types';
 
 interface MessagesViewProps {
   conversations: Conversation[];
+  currentUserId: string;
   onSendMessage: (conversationId: string, text: string) => void;
+  onOpenConversation: (conversationId: string) => void;
   onOpenCheckoutFromChat: (productInfo: { id: string; title: string; price: number; images: string[]; location: string; seller: any }) => void;
   onSelectProductById: (productId: string) => void;
 }
 
 export const MessagesView: React.FC<MessagesViewProps> = ({
   conversations,
+  currentUserId,
   onSendMessage,
+  onOpenConversation,
   onOpenCheckoutFromChat,
   onSelectProductById,
 }) => {
@@ -19,6 +23,15 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   const [inputText, setInputText] = useState('');
 
   const activeConversation = conversations.find((c) => c.id === activeConvId);
+  const isSellerView = activeConversation?.sellerId === currentUserId;
+  const counterpart = activeConversation
+    ? (isSellerView ? activeConversation.buyer : activeConversation.seller)
+    : null;
+
+  const openConversation = (id: string) => {
+    setActiveConvId(id);
+    onOpenConversation(id);
+  };
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,25 +56,25 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                 <ArrowLeft className="w-4 h-4" />
               </button>
 
-              {activeConversation.seller.avatar ? (
+              {counterpart?.avatar ? (
                 <img
-                  src={activeConversation.seller.avatar}
-                  alt={activeConversation.seller.name}
+                  src={counterpart.avatar}
+                  alt={counterpart.name}
                   referrerPolicy="no-referrer"
                   className="w-9 h-9 rounded-full object-cover border border-emerald-500"
                 />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center">
-                  {activeConversation.seller.initials}
+                  {counterpart?.initials}
                 </div>
               )}
 
               <div>
                 <div className="flex items-center gap-1">
                   <span className="font-bold text-sm text-slate-900">
-                    {activeConversation.seller.name}
+                    {counterpart?.name}
                   </span>
-                  {activeConversation.seller.isVerified && (
+                  {counterpart?.isVerified && (
                     <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full">
                       Vérifié
                     </span>
@@ -101,27 +114,29 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                 Transaction protégée par Mon Bazar Mobile Money
               </span>
             </div>
-            <button
-              onClick={() =>
-                onOpenCheckoutFromChat({
-                  id: activeConversation.productId,
-                  title: activeConversation.productTitle,
-                  price: activeConversation.productPrice,
-                  images: [activeConversation.productImage],
-                  location: 'Cotonou',
-                  seller: activeConversation.seller,
-                })
-              }
-              className="px-3 py-1 bg-[#FF6B47] hover:bg-[#E85A38] text-white font-bold rounded-lg text-xs shadow-xs"
-            >
-              Acheter ({new Intl.NumberFormat('fr-FR').format(activeConversation.productPrice)} FCFA)
-            </button>
+            {!isSellerView && (
+              <button
+                onClick={() =>
+                  onOpenCheckoutFromChat({
+                    id: activeConversation.productId,
+                    title: activeConversation.productTitle,
+                    price: activeConversation.productPrice,
+                    images: [activeConversation.productImage],
+                    location: 'Cotonou',
+                    seller: activeConversation.seller,
+                  })
+                }
+                className="px-3 py-1 bg-[#FF6B47] hover:bg-[#E85A38] text-white font-bold rounded-lg text-xs shadow-xs"
+              >
+                Acheter ({new Intl.NumberFormat('fr-FR').format(activeConversation.productPrice)} FCFA)
+              </button>
+            )}
           </div>
 
           {/* Messages Feed */}
           <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/30">
             {activeConversation.messages.map((msg) => {
-              const isMe = msg.senderId === 'buyer' || msg.senderId === 'user-me';
+              const isMe = msg.senderId === currentUserId;
               return (
                 <div
                   key={msg.id}
@@ -180,54 +195,57 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
           </div>
 
           <div className="divide-y divide-slate-100 overflow-y-auto flex-1 mt-2">
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                onClick={() => setActiveConvId(conv.id)}
-                className="py-3.5 px-2 flex items-center gap-3.5 hover:bg-slate-50 rounded-2xl cursor-pointer transition-colors"
-              >
-                {/* Avatar */}
-                <div className="relative flex-shrink-0">
-                  {conv.seller.avatar ? (
-                    <img
-                      src={conv.seller.avatar}
-                      alt={conv.seller.name}
-                      referrerPolicy="no-referrer"
-                      className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-emerald-700 text-white font-extrabold text-sm flex items-center justify-center">
-                      {conv.seller.initials}
-                    </div>
-                  )}
-                  {conv.unread && (
-                    <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full" />
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="font-bold text-sm text-slate-900 truncate">
-                      {conv.seller.name}
-                    </span>
-                    <span className="text-[11px] text-slate-400">{conv.lastMessageTime}</span>
+            {conversations.map((conv) => {
+              const other = conv.sellerId === currentUserId ? conv.buyer : conv.seller;
+              return (
+                <div
+                  key={conv.id}
+                  onClick={() => openConversation(conv.id)}
+                  className="py-3.5 px-2 flex items-center gap-3.5 hover:bg-slate-50 rounded-2xl cursor-pointer transition-colors"
+                >
+                  {/* Avatar */}
+                  <div className="relative flex-shrink-0">
+                    {other?.avatar ? (
+                      <img
+                        src={other.avatar}
+                        alt={other.name}
+                        referrerPolicy="no-referrer"
+                        className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-emerald-700 text-white font-extrabold text-sm flex items-center justify-center">
+                        {other?.initials}
+                      </div>
+                    )}
+                    {conv.unread && (
+                      <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full" />
+                    )}
                   </div>
-                  <p className="text-xs font-medium text-emerald-600 truncate mb-0.5">
-                    Article : {conv.productTitle}
-                  </p>
-                  <p className="text-xs text-slate-500 truncate">{conv.lastMessage}</p>
-                </div>
 
-                {/* Product Thumbnail */}
-                <img
-                  src={conv.productImage}
-                  alt={conv.productTitle}
-                  referrerPolicy="no-referrer"
-                  className="w-10 h-10 rounded-xl object-cover border border-slate-200 flex-shrink-0"
-                />
-              </div>
-            ))}
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="font-bold text-sm text-slate-900 truncate">
+                        {other?.name}
+                      </span>
+                      <span className="text-[11px] text-slate-400">{conv.lastMessageTime}</span>
+                    </div>
+                    <p className="text-xs font-medium text-emerald-600 truncate mb-0.5">
+                      Article : {conv.productTitle}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">{conv.lastMessage}</p>
+                  </div>
+
+                  {/* Product Thumbnail */}
+                  <img
+                    src={conv.productImage}
+                    alt={conv.productTitle}
+                    referrerPolicy="no-referrer"
+                    className="w-10 h-10 rounded-xl object-cover border border-slate-200 flex-shrink-0"
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

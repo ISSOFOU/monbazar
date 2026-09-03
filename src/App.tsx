@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ShieldCheck } from 'lucide-react';
-import { Product, TabType, Conversation, Message } from './types';
-import { INITIAL_CONVERSATIONS } from './data/mockData';
+import { Product, TabType, Conversation } from './types';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { ProductCard } from './components/ProductCard';
@@ -89,10 +88,16 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [conversations, setConversations] = useState<Conversation[]>(() => {
-    const saved = localStorage.getItem('mon_bazar_conversations');
-    return saved ? JSON.parse(saved) : INITIAL_CONVERSATIONS;
-  });
+  // Conversations — loaded from the shared database (see netlify/functions/conversations.mts)
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+
+  useEffect(() => {
+    if (!authToken) return;
+    fetch('/api/conversations', { headers: { authorization: `Bearer ${authToken}` } })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: Conversation[]) => setConversations(data))
+      .catch(() => setConversations([]));
+  }, [authToken]);
 
   // Filter & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,14 +123,10 @@ export default function App() {
     }, 3500);
   };
 
-  // Sync with LocalStorage (favorites and conversations stay per-device for now)
+  // Favorites stay per-device for now
   useEffect(() => {
     localStorage.setItem('mon_bazar_favorites', JSON.stringify(favorites));
   }, [favorites]);
-
-  useEffect(() => {
-    localStorage.setItem('mon_bazar_conversations', JSON.stringify(conversations));
-  }, [conversations]);
 
   // Toggle favorite
   const handleToggleFavorite = (id: string, e: React.MouseEvent) => {
@@ -182,48 +183,37 @@ export default function App() {
 
   // Submit price offer
   const handleSubmitOffer = (amount: number, messageText: string) => {
-    if (!selectedProduct) return;
+    if (!selectedProduct || !authToken) return;
+    if (selectedProduct.seller.id === currentUser?.id) {
+      showToast("C'est votre propre annonce.");
+      return;
+    }
 
-    const convId = `conv-${selectedProduct.id}-${Date.now()}`;
-    const newMsg: Message = {
-      id: `msg-${Date.now()}`,
-      senderId: 'buyer',
-      text: `${messageText} (Offre proposée : ${new Intl.NumberFormat('fr-FR').format(amount)} FCFA)`,
-      timestamp: "À l'instant",
-      isOffer: true,
-      offerAmount: amount,
-      offerStatus: 'pending',
-    };
-
-    const existingConvIndex = conversations.findIndex(
-      (c) => c.productId === selectedProduct.id
-    );
-
-    if (existingConvIndex >= 0) {
-      const updated = [...conversations];
-      updated[existingConvIndex].messages.push(newMsg);
-      updated[existingConvIndex].lastMessage = `Offre de ${new Intl.NumberFormat('fr-FR').format(amount)} FCFA`;
-      updated[existingConvIndex].lastMessageTime = "À l'instant";
-      setConversations(updated);
-    } else {
-      const newConv: Conversation = {
-        id: convId,
+    fetch('/api/conversations', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({
         productId: selectedProduct.id,
         productTitle: selectedProduct.title,
         productPrice: selectedProduct.price,
         productImage: selectedProduct.images[0],
-        seller: selectedProduct.seller,
-        lastMessage: `Offre envoyée : ${new Intl.NumberFormat('fr-FR').format(amount)} FCFA`,
-        lastMessageTime: "À l'instant",
-        unread: false,
-        messages: [newMsg],
-      };
-      setConversations((prev) => [newConv, ...prev]);
-    }
-
-    setIsDetailModalOpen(false);
-    showToast(`✅ Offre de ${new Intl.NumberFormat('fr-FR').format(amount)} FCFA transmise à ${selectedProduct.seller.name}`);
-    setCurrentTab('messages');
+        sellerId: selectedProduct.seller.id,
+        text: `${messageText} (Offre proposée : ${new Intl.NumberFormat('fr-FR').format(amount)} FCFA)`,
+        isOffer: true,
+        offerAmount: amount,
+      }),
+    })
+      .then((res) => res.json())
+      .then((conv: Conversation) => {
+        setConversations((prev) => {
+          const exists = prev.some((c) => c.id === conv.id);
+          return exists ? prev.map((c) => (c.id === conv.id ? conv : c)) : [conv, ...prev];
+        });
+        setIsDetailModalOpen(false);
+        showToast(`✅ Offre de ${new Intl.NumberFormat('fr-FR').format(amount)} FCFA transmise à ${selectedProduct.seller.name}`);
+        setCurrentTab('messages');
+      })
+      .catch(() => showToast("Erreur : impossible d'envoyer l'offre"));
   };
 
   // Checkout success
@@ -248,54 +238,59 @@ export default function App() {
 
   // Start chat directly from product detail
   const handleStartChat = (prod: Product) => {
+    if (!authToken) return;
+    if (prod.seller.id === currentUser?.id) {
+      showToast("C'est votre propre annonce.");
+      return;
+    }
     setIsDetailModalOpen(false);
+
     const existing = conversations.find((c) => c.productId === prod.id);
-    if (!existing) {
-      const newConv: Conversation = {
-        id: `conv-${prod.id}-${Date.now()}`,
+    if (existing) {
+      setCurrentTab('messages');
+      return;
+    }
+
+    fetch('/api/conversations', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({
         productId: prod.id,
         productTitle: prod.title,
         productPrice: prod.price,
         productImage: prod.images[0],
-        seller: prod.seller,
-        lastMessage: `Bonjour, votre article "${prod.title}" est-il toujours disponible ?`,
-        lastMessageTime: "À l'instant",
-        unread: false,
-        messages: [
-          {
-            id: `msg-${Date.now()}`,
-            senderId: 'buyer',
-            text: `Bonjour, votre article "${prod.title}" est-il toujours disponible ?`,
-            timestamp: "À l'instant",
-          },
-        ],
-      };
-      setConversations((prev) => [newConv, ...prev]);
-    }
-    setCurrentTab('messages');
+        sellerId: prod.seller.id,
+        text: `Bonjour, votre article "${prod.title}" est-il toujours disponible ?`,
+      }),
+    })
+      .then((res) => res.json())
+      .then((conv: Conversation) => {
+        setConversations((prev) => [conv, ...prev]);
+        setCurrentTab('messages');
+      })
+      .catch(() => showToast("Erreur : impossible de démarrer la conversation"));
   };
 
   // Send message in chat
   const handleSendMessage = (convId: string, text: string) => {
-    setConversations((prev) =>
-      prev.map((c) => {
-        if (c.id === convId) {
-          const newMsg: Message = {
-            id: `msg-${Date.now()}`,
-            senderId: 'buyer',
-            text,
-            timestamp: "À l'instant",
-          };
-          return {
-            ...c,
-            lastMessage: text,
-            lastMessageTime: "À l'instant",
-            messages: [...c.messages, newMsg],
-          };
-        }
-        return c;
+    if (!authToken) return;
+    fetch(`/api/conversations/${convId}/messages`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({ text }),
+    })
+      .then((res) => res.json())
+      .then((conv: Conversation) => {
+        setConversations((prev) => prev.map((c) => (c.id === conv.id ? conv : c)));
       })
-    );
+      .catch(() => showToast("Erreur : message non envoyé"));
+  };
+
+  // Mark a conversation as read when opened
+  const handleOpenConversation = (convId: string) => {
+    if (!authToken) return;
+    setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, unread: false } : c)));
+    fetch(`/api/conversations/${convId}`, { headers: { authorization: `Bearer ${authToken}` } }).catch(() => {});
   };
 
   // Delete user listing
@@ -479,7 +474,9 @@ export default function App() {
           {currentTab === 'messages' && (
             <MessagesView
               conversations={conversations}
+              currentUserId={currentUser.id}
               onSendMessage={handleSendMessage}
+              onOpenConversation={handleOpenConversation}
               onOpenCheckoutFromChat={(prodInfo) => {
                 setCheckoutProduct(prodInfo as any);
                 setIsCheckoutModalOpen(true);

@@ -68,6 +68,9 @@ export interface Conversation {
   productTitle: string;
   productPrice: number;
   productImage: string;
+  buyerId: string;
+  sellerId: string;
+  buyer: Seller;
   seller: Seller;
   lastMessage: string;
   lastMessageTime: string;
