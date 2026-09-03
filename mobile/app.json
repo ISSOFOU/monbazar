@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Mon Bazar",
+    "slug": "monbazar",
+    "scheme": "monbazar",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F1F5F9",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.monbazar.mobile"
+    },
+    "android": {
+      "package": "com.monbazar.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B8457",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Mon Bazar a besoin d'accéder à tes photos pour publier des annonces."
+        }
+      ]
+    ],
+    "extra": {
+      "apiBaseUrl": "https://resplendent-empanada-11d531.netlify.app"
+    }
+  }
+}
