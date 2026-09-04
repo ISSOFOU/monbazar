@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions';
 import { getDatabase } from '@netlify/database';
 import { getUserFromRequest, getUserById, userToSeller } from '../lib/auth';
+import { notifyUser } from '../lib/push';
 
 export default async (req: Request) => {
   const db = getDatabase();
@@ -79,6 +80,8 @@ export default async (req: Request) => {
         WHERE id = ${conv.id}
       `;
 
+      notifyUser(sellerId, user.name, text, { type: 'new_message', conversationId: conv.id }, db).catch(() => {});
+
       return new Response(JSON.stringify({ ...updatedData, unread: false }), {
         status: 201,
         headers: { 'content-type': 'application/json' },
@@ -105,7 +108,7 @@ export default async (req: Request) => {
       buyer: userToSeller(user),
       seller: userToSeller(sellerUser),
       lastMessage: text,
-      lastMessageTime: "À l'instant",
+      lastMessageTime: now,
       messages: [message],
     };
 
@@ -113,6 +116,8 @@ export default async (req: Request) => {
       INSERT INTO conversations (id, product_id, buyer_id, seller_id, buyer_unread, seller_unread, data)
       VALUES (${id}, ${productId ?? null}, ${user.id}, ${sellerId}, false, true, ${JSON.stringify(data)}::jsonb)
     `;
+
+    notifyUser(sellerId, user.name, text, { type: 'new_message', conversationId: id }, db).catch(() => {});
 
     return new Response(JSON.stringify({ ...data, unread: false }), {
       status: 201,

@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions';
 import { getDatabase } from '@netlify/database';
 import type { Product } from '../../src/types';
 import { getUserFromRequest } from '../lib/auth';
+import { notifyUsers } from '../lib/push';
 
 export default async (req: Request) => {
   const db = getDatabase();
@@ -74,6 +75,25 @@ export default async (req: Request) => {
       INSERT INTO products (id, seller_id, category, city, is_sold, data)
       VALUES (${product.id}, ${user.id}, ${product.category}, ${product.city}, false, ${JSON.stringify(product)}::jsonb)
     `;
+
+    // Notify followers of this seller + users interested in this category (fire-and-forget).
+    const followerRows = await db.sql`SELECT follower_id FROM follows WHERE followed_id = ${user.id}`;
+    const interestedRows = await db.sql`
+      SELECT user_id FROM interest_categories WHERE category = ${product.category} AND user_id != ${user.id}
+    `;
+    const notifyIds = Array.from(
+      new Set([
+        ...followerRows.map((r: { follower_id: string }) => r.follower_id),
+        ...interestedRows.map((r: { user_id: string }) => r.user_id),
+      ])
+    );
+    notifyUsers(
+      notifyIds,
+      'Nouvelle annonce',
+      `${user.name} a publié "${product.title}" (${product.category})`,
+      { type: 'new_product', productId: product.id },
+      db
+    ).catch(() => {});
 
     return new Response(JSON.stringify(product), {
       status: 201,

@@ -1,6 +1,7 @@
 import type { Config, Context } from '@netlify/functions';
 import { getDatabase } from '@netlify/database';
 import { getUserFromRequest } from '../lib/auth';
+import { notifyUser } from '../lib/push';
 
 export default async (req: Request, context: Context) => {
   if (req.method !== 'POST') {
@@ -68,6 +69,15 @@ export default async (req: Request, context: Context) => {
       WHERE id = ${id}
     `;
   }
+
+  const recipientId = isBuyer ? conv.seller_id : conv.buyer_id;
+  notifyUser(
+    recipientId,
+    user.name,
+    text,
+    { type: 'new_message', conversationId: id },
+    db
+  ).catch(() => {});
 
   return new Response(JSON.stringify({ ...updatedData, unread: false }), {
     status: 201,
