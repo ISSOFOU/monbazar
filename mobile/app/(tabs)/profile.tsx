@@ -16,8 +16,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 import { colors } from '../../lib/theme';
-import { BENIN_LOCATIONS, type Product } from '../../lib/types';
+import { BENIN_LOCATIONS, CATEGORIES_LIST, type Product } from '../../lib/types';
 import { ProductCard } from '../../components/ProductCard';
+
+const INTEREST_CATEGORIES = CATEGORIES_LIST.filter((c) => c !== 'Tous');
 
 export default function ProfileScreen() {
   const { authToken, currentUser, logout, updateUser } = useAuth();
@@ -28,15 +30,32 @@ export default function ProfileScreen() {
   const [bio, setBio] = useState(currentUser?.bio || '');
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [interests, setInterests] = useState<string[]>([]);
 
   const load = useCallback(() => {
     if (!authToken || !currentUser) return;
     apiFetch<Product[]>('/api/products')
       .then((all) => setMyProducts(all.filter((p) => p.seller.id === currentUser.id)))
       .finally(() => setLoading(false));
+    apiFetch<string[]>('/api/interests', { token: authToken })
+      .then(setInterests)
+      .catch(() => {});
   }, [authToken, currentUser]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const toggleInterest = async (category: string) => {
+    const next = interests.includes(category)
+      ? interests.filter((c) => c !== category)
+      : [...interests, category];
+    setInterests(next);
+    if (!authToken) return;
+    try {
+      await apiFetch('/api/interests', { method: 'PUT', token: authToken, body: { categories: next } });
+    } catch {
+      setInterests(interests);
+    }
+  };
 
   const saveBio = async () => {
     if (!authToken) return;
@@ -160,6 +179,22 @@ export default function ProfileScreen() {
                 </Text>
               ))}
             </ScrollView>
+
+            <Text style={[styles.settingsRowLabel, { marginTop: 16 }]}>Centres d'intérêt</Text>
+            <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2, marginBottom: 6 }}>
+              Reçois une notification dès qu'une nouvelle annonce est publiée dans ces catégories.
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {INTEREST_CATEGORIES.map((c) => (
+                <Text
+                  key={c}
+                  onPress={() => toggleInterest(c)}
+                  style={[styles.cityChip, interests.includes(c) && styles.cityChipActive]}
+                >
+                  {c}
+                </Text>
+              ))}
+            </View>
 
             <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
               <Text style={styles.logoutText}>Se déconnecter</Text>

@@ -34,10 +34,20 @@
         {
           "photosPermission": "Mon Bazar a besoin d'accéder à tes photos pour publier des annonces."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-foreground.png",
+          "color": "#0B8457"
+        }
       ]
     ],
     "extra": {
-      "apiBaseUrl": "https://resplendent-empanada-11d531.netlify.app"
+      "apiBaseUrl": "https://resplendent-empanada-11d531.netlify.app",
+      "eas": {
+        "projectId": "PLACEHOLDER_WILL_BE_SET_ONCE_USER_PROVIDES_IT"
+      }
     }
   }
 }
