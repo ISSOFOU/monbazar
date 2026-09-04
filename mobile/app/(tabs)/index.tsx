@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../lib/api';
@@ -12,6 +12,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [category, setCategory] = useState('Tous');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -29,7 +30,9 @@ export default function HomeScreen() {
     load();
   }, [load]);
 
-  const filtered = category === 'Tous' ? products : products.filter((p) => p.category === category);
+  const filtered = products
+    .filter((p) => category === 'Tous' || p.category === category)
+    .filter((p) => p.title.toLowerCase().includes(searchQuery.trim().toLowerCase()));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
@@ -42,6 +45,25 @@ export default function HomeScreen() {
             Mon <Text style={{ color: colors.emerald }}>Bazar</Text>
           </Text>
         </View>
+      </View>
+
+      <View style={styles.searchRow}>
+        <Ionicons name="search" size={16} color={colors.textFaint} />
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Rechercher un article..."
+          placeholderTextColor={colors.textFaint}
+          style={styles.searchInput}
+        />
+        {searchQuery.length > 0 && (
+          <Ionicons
+            name="close-circle"
+            size={17}
+            color={colors.textFaint}
+            onPress={() => setSearchQuery('')}
+          />
+        )}
       </View>
 
       <FlatList
@@ -114,6 +136,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoText: { fontSize: 18, fontWeight: '800', color: colors.text },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 14,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+  },
+  searchInput: { flex: 1, fontSize: 13, color: colors.text, padding: 0 },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,

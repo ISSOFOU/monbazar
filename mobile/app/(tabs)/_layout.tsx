@@ -10,7 +10,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.emerald,
         tabBarInactiveTintColor: colors.textFaint,
-        tabBarStyle: { height: 60, paddingBottom: 8, paddingTop: 6 },
+        tabBarStyle: { height: 68, paddingBottom: 8, paddingTop: 10 },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
@@ -33,9 +33,9 @@ export default function TabsLayout() {
         options={{
           title: 'Vendre',
           tabBarIcon: () => (
-            <Ionicons name="add-circle" size={44} color={colors.coral} style={{ marginTop: -14 }} />
+            <Ionicons name="add-circle" size={36} color={colors.coralDark} style={{ marginTop: -2 }} />
           ),
-          tabBarLabelStyle: { fontSize: 11, fontWeight: '800', color: colors.coral, marginTop: -6 },
+          tabBarLabelStyle: { fontSize: 11, fontWeight: '800', color: colors.coralDark, marginTop: 0 },
         }}
       />
       <Tabs.Screen
