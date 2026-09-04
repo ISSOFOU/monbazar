@@ -85,6 +85,19 @@ export const CATEGORIES_LIST = [
   'Loisirs & Sport',
 ];
 
+export const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
+  Tous: { color: '#334155', bg: '#F1F5F9' },
+  Femmes: { color: '#E85A38', bg: '#FFF1EC' },
+  Hommes: { color: '#0B8457', bg: '#E9F6F0' },
+  'High-Tech': { color: '#1D4ED8', bg: '#EAF0FE' },
+  Maison: { color: '#B45309', bg: '#FEF4E6' },
+  'Beauté & Santé': { color: '#BE185D', bg: '#FDF0F6' },
+  'Enfants & Bébés': { color: '#7C3AED', bg: '#F3EEFE' },
+  Artisanat: { color: '#C2410C', bg: '#FEEEE6' },
+  Véhicules: { color: '#0369A1', bg: '#E9F6FE' },
+  'Loisirs & Sport': { color: '#15803D', bg: '#EDF9EF' },
+};
+
 export const BENIN_LOCATIONS = [
   'Tout le Bénin',
   'Cotonou, Fidjrossè',

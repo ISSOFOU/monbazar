@@ -15,7 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { apiFetch, API_BASE } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 import { colors } from '../../lib/theme';
-import { BENIN_LOCATIONS } from '../../lib/types';
+import { BENIN_LOCATIONS, CATEGORY_COLORS } from '../../lib/types';
 import { useRouter } from 'expo-router';
 
 const CATEGORIES = ['Femmes', 'Hommes', 'High-Tech', 'Maison', 'Beauté & Santé', 'Enfants & Bébés', 'Artisanat', 'Véhicules', 'Loisirs & Sport'];
@@ -133,15 +133,24 @@ export default function SellScreen() {
 
         <Text style={styles.label}>Catégorie</Text>
         <View style={styles.chipsRow}>
-          {CATEGORIES.map((c) => (
-            <Text
-              key={c}
-              onPress={() => setCategory(c)}
-              style={[styles.chip, category === c && styles.chipActive]}
-            >
-              {c}
-            </Text>
-          ))}
+          {CATEGORIES.map((c) => {
+            const active = category === c;
+            const palette = CATEGORY_COLORS[c] ?? CATEGORY_COLORS.Tous;
+            return (
+              <Text
+                key={c}
+                onPress={() => setCategory(c)}
+                style={[
+                  styles.chip,
+                  active
+                    ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
+                    : { backgroundColor: palette.bg, borderColor: 'transparent', color: palette.color },
+                ]}
+              >
+                {c}
+              </Text>
+            );
+          })}
         </View>
 
         {(category === 'Femmes' || category === 'Hommes' || category === 'Enfants & Bébés') && (

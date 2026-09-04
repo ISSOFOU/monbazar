@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, MapPin, Heart, ChevronDown, Bell, Sparkles } from 'lucide-react';
 import { Logo } from './Logo';
-import { CATEGORIES_LIST } from '../data/mockData';
+import { CATEGORIES_LIST, CATEGORY_COLORS } from '../data/mockData';
 
 interface NavbarProps {
   searchQuery: string;
@@ -130,15 +130,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-2 overflow-x-auto py-1 -mx-4 px-4 no-scrollbar">
           {CATEGORIES_LIST.map((cat) => {
             const isActive = selectedCategory === cat;
+            const palette = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.Tous;
             return (
               <button
                 key={cat}
                 onClick={() => onSelectCategory(cat)}
-                className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex-shrink-0 ${
+                className="whitespace-nowrap px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex-shrink-0 border"
+                style={
                   isActive
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300'
-                }`}
+                    ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
+                    : { backgroundColor: palette.bg, borderColor: 'transparent', color: palette.color }
+                }
               >
                 {cat}
               </button>

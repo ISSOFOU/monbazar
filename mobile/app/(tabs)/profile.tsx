@@ -16,7 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 import { colors } from '../../lib/theme';
-import { BENIN_LOCATIONS, CATEGORIES_LIST, type Product } from '../../lib/types';
+import { BENIN_LOCATIONS, CATEGORIES_LIST, CATEGORY_COLORS, type Product } from '../../lib/types';
 import { ProductCard } from '../../components/ProductCard';
 
 const INTEREST_CATEGORIES = CATEGORIES_LIST.filter((c) => c !== 'Tous');
@@ -185,15 +185,24 @@ export default function ProfileScreen() {
               Reçois une notification dès qu'une nouvelle annonce est publiée dans ces catégories.
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {INTEREST_CATEGORIES.map((c) => (
-                <Text
-                  key={c}
-                  onPress={() => toggleInterest(c)}
-                  style={[styles.cityChip, interests.includes(c) && styles.cityChipActive]}
-                >
-                  {c}
-                </Text>
-              ))}
+              {INTEREST_CATEGORIES.map((c) => {
+                const active = interests.includes(c);
+                const palette = CATEGORY_COLORS[c] ?? CATEGORY_COLORS.Tous;
+                return (
+                  <Text
+                    key={c}
+                    onPress={() => toggleInterest(c)}
+                    style={[
+                      styles.cityChip,
+                      active
+                        ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
+                        : { backgroundColor: palette.bg, borderColor: 'transparent', color: palette.color },
+                    ]}
+                  >
+                    {c}
+                  </Text>
+                );
+              })}
             </View>
 
             <TouchableOpacity style={styles.logoutBtn} onPress={logout}>

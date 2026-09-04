@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Plus, Image as ImageIcon, Trash2, CheckCircle, Upload, Link as LinkIcon, Sparkles } from 'lucide-react';
 import { Condition, Category, Product } from '../types';
-import { BENIN_LOCATIONS } from '../data/mockData';
+import { BENIN_LOCATIONS, CATEGORY_COLORS } from '../data/mockData';
 import { uploadImage } from '../utils/uploadImage';
 
 interface SellModalProps {
@@ -277,16 +277,18 @@ export const SellModal: React.FC<SellModalProps> = ({
                 <div className="flex flex-wrap gap-2">
                   {CATEGORIES.map((cat) => {
                     const isSelected = category === cat;
+                    const palette = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.Tous;
                     return (
                       <button
                         key={cat}
                         type="button"
                         onClick={() => setCategory(cat)}
-                        className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                        className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all border"
+                        style={
                           isSelected
-                            ? 'bg-emerald-700 text-white shadow-xs'
-                            : 'bg-white text-slate-700 border border-slate-200 hover:border-slate-300'
-                        }`}
+                            ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
+                            : { backgroundColor: palette.bg, borderColor: 'transparent', color: palette.color }
+                        }
                       >
                         {cat}
                       </button>
