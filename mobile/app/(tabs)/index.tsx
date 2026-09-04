@@ -61,7 +61,7 @@ export default function HomeScreen() {
                 styles.chip,
                 active
                   ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
-                  : { backgroundColor: palette.bg, borderColor: 'transparent', color: palette.color },
+                  : { backgroundColor: '#fff', borderColor: palette.color, color: palette.color },
               ]}
             >
               {item}

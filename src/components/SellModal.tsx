@@ -287,7 +287,7 @@ export const SellModal: React.FC<SellModalProps> = ({
                         style={
                           isSelected
                             ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
-                            : { backgroundColor: palette.bg, borderColor: 'transparent', color: palette.color }
+                            : { backgroundColor: '#fff', borderColor: palette.color, color: palette.color }
                         }
                       >
                         {cat}

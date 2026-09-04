@@ -139,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 style={
                   isActive
                     ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
-                    : { backgroundColor: palette.bg, borderColor: 'transparent', color: palette.color }
+                    : { backgroundColor: '#fff', borderColor: palette.color, color: palette.color }
                 }
               >
                 {cat}
