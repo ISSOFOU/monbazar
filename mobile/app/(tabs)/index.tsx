@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../lib/api';
 import { colors } from '../../lib/theme';
-import { CATEGORIES_LIST, CATEGORY_COLORS, type Product } from '../../lib/types';
+import { CATEGORIES_LIST, type Product } from '../../lib/types';
 import { ProductCard } from '../../components/ProductCard';
 
 export default function HomeScreen() {
@@ -53,16 +53,10 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}
         renderItem={({ item }) => {
           const active = item === category;
-          const palette = CATEGORY_COLORS[item] ?? CATEGORY_COLORS.Tous;
           return (
             <Text
               onPress={() => setCategory(item)}
-              style={[
-                styles.chip,
-                active
-                  ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
-                  : { backgroundColor: '#fff', borderColor: palette.color, color: palette.color },
-              ]}
+              style={[styles.chip, active && styles.chipActive]}
             >
               {item}
             </Text>

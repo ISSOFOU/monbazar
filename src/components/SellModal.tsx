@@ -283,12 +283,10 @@ export const SellModal: React.FC<SellModalProps> = ({
                         key={cat}
                         type="button"
                         onClick={() => setCategory(cat)}
-                        className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all border"
-                        style={
-                          isSelected
-                            ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
-                            : { backgroundColor: '#fff', borderColor: palette.color, color: palette.color }
-                        }
+                        className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all border ${
+                          isSelected ? '' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                        }`}
+                        style={isSelected ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' } : undefined}
                       >
                         {cat}
                       </button>

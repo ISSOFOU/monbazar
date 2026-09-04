@@ -142,9 +142,7 @@ export default function SellScreen() {
                 onPress={() => setCategory(c)}
                 style={[
                   styles.chip,
-                  active
-                    ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
-                    : { backgroundColor: '#fff', borderColor: palette.color, color: palette.color },
+                  active && { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' },
                 ]}
               >
                 {c}

@@ -194,9 +194,7 @@ export default function ProfileScreen() {
                     onPress={() => toggleInterest(c)}
                     style={[
                       styles.cityChip,
-                      active
-                        ? { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' }
-                        : { backgroundColor: '#fff', borderColor: palette.color, color: palette.color },
+                      active && { backgroundColor: palette.color, borderColor: palette.color, color: '#fff' },
                     ]}
                   >
                     {c}
